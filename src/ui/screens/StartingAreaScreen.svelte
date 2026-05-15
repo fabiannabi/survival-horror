@@ -290,4 +290,36 @@
   }
 
   .select-area__start-btn:hover { opacity: 0.85; }
+
+  @media (max-width: 640px) {
+    .select-area {
+      flex-direction: column;
+    }
+
+    .select-area__map {
+      flex: none;
+      height: 42svh;
+    }
+
+    .select-area__panel {
+      width: 100%;
+      border-left: none;
+      border-top: 1px solid var(--color-border);
+      flex: 1;
+      min-height: 0;
+    }
+
+    .select-area__list {
+      flex-direction: row;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 0.5rem;
+    }
+
+    .zone-card {
+      min-width: 200px;
+      flex-shrink: 0;
+    }
+  }
 </style>

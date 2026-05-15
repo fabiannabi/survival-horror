@@ -13,7 +13,7 @@
     info: 'var(--color-text)',
     combat: 'var(--color-blood)',
     narrative: 'var(--color-hope)',
-    warning: '#c9a961',
+    warning: '#c4883a',
     danger: '#cc4444',
   };
 </script>
@@ -50,7 +50,7 @@
     font-size: 0.6rem;
     letter-spacing: 0.2em;
     opacity: 0.35;
-    border-bottom: 1px solid #2a2a2a;
+    border-bottom: 1px solid var(--color-border);
     text-transform: uppercase;
     flex-shrink: 0;
   }

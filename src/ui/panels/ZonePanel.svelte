@@ -97,7 +97,7 @@
 
 <style>
   .zone-panel {
-    border-bottom: 1px solid #222;
+    border-bottom: 1px solid var(--color-border);
     font-family: var(--font-ui);
     display: flex;
     flex-direction: column;
@@ -107,7 +107,7 @@
 
   .zone-panel__header {
     padding: 0.6rem 0.75rem 0.3rem;
-    border-bottom: 1px solid #222;
+    border-bottom: 1px solid var(--color-border);
   }
 
   .zone-panel__name {
@@ -163,7 +163,7 @@
   .zone-panel__bar {
     flex: 1;
     height: 4px;
-    background: #2a2a2a;
+    background: var(--color-border);
   }
 
   .zone-panel__bar-fill {
@@ -204,13 +204,15 @@
 
   .zone-panel__btn {
     width: 100%;
-    padding: 0.42rem;
+    padding: 0.65rem 0.42rem;
+    min-height: 44px;
     background: transparent;
     font-family: var(--font-ui);
-    font-size: 0.78rem;
+    font-size: 0.82rem;
     letter-spacing: 0.06em;
     cursor: pointer;
     transition: background 0.15s, color 0.15s;
+    touch-action: manipulation;
   }
 
   .zone-panel__btn--travel {

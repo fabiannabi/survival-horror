@@ -183,6 +183,7 @@
     flex: 1;
     display: flex;
     overflow: hidden;
+    min-height: 0;
   }
 
   .strategic__map {
@@ -198,5 +199,34 @@
     flex-direction: column;
     overflow: hidden;
     flex-shrink: 0;
+  }
+
+  @media (max-width: 640px) {
+    .strategic__hud {
+      font-size: 0.88em;
+    }
+
+    .strategic__city,
+    .strategic__threat {
+      padding: 0 0.5rem;
+    }
+
+    .strategic__body {
+      flex-direction: column;
+    }
+
+    .strategic__map {
+      flex: none;
+      height: 52svh;
+    }
+
+    .strategic__sidebar {
+      width: 100%;
+      border-left: none;
+      border-top: 1px solid var(--color-border);
+      flex: 1;
+      flex-direction: row;
+      min-height: 0;
+    }
   }
 </style>
