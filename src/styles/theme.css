@@ -1,0 +1,12 @@
+:root {
+  --color-bg: #0f0f0d;
+  --color-text: #d4d4c8;
+  --color-blood: #7a1f1f;
+  --color-infection: #5c6e2e;
+  --color-hope: #c9a961;
+  --color-fog: #2a2a28;
+  --color-fog-overlay: rgba(0, 0, 0, 0.6);
+
+  --font-ui: 'Barlow Condensed', 'Oswald', sans-serif;
+  --font-narrative: 'Special Elite', 'Courier Prime', monospace;
+}

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(gh *)",
+      "PowerShell(cmd /c \"echo y | npx create-vite@latest C:\\\\Users\\\\FABIAN\\\\Desktop\\\\agsZ --template svelte-ts\" 2>&1)",
+      "Bash(npx create-vite@latest . --template svelte-ts)",
+      "Bash(mv /tmp/claude_backup .claude)",
+      "PowerShell(npm install *)"
+    ]
+  }
+}
