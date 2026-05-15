@@ -211,15 +211,31 @@
 
   .zone-panel__btn {
     width: 100%;
-    padding: 0.65rem 0.42rem;
+    padding: 0.5rem 0.75rem;
     min-height: 44px;
     background: transparent;
     font-family: var(--font-ui);
-    font-size: 0.82rem;
-    letter-spacing: 0.06em;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
     cursor: pointer;
     transition: background 0.15s, color 0.15s;
     touch-action: manipulation;
+  }
+
+  @media (max-width: 640px) {
+    .zone-panel__btn {
+      padding: 0.35rem 0.75rem;
+      min-height: 40px;
+      font-size: 0.72rem;
+    }
+
+    .zone-panel {
+      min-height: 0;
+    }
+
+    .zone-panel__actions {
+      padding: 0.35rem 0.75rem 0.4rem;
+    }
   }
 
   .zone-panel__btn--travel {
