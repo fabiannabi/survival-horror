@@ -1,8 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { get } from 'svelte/store';
-  import { Application } from 'pixi.js';
-  import { StrategicView } from '../../render/StrategicView';
+  import L from 'leaflet';
   import { INITIAL_ZONES, type ZoneStateDef } from '../../engine/data/zones';
   import { uiStore } from '../../stores/uiStore';
   import { gameStore } from '../../stores/gameStore';
@@ -15,48 +13,75 @@
     residential: 'Residencial', commercial: 'Comercial', industrial: 'Industrial',
     medical: 'Médico', military: 'Militar', wild: 'Natural',
   };
-
   const DANGER_LABEL = ['', 'Mínimo', 'Bajo', 'Bajo', 'Moderado', 'Moderado', 'Alto', 'Alto', 'Extremo', 'Extremo', 'Letal'];
-  const DANGER_COLOR = ['', '#4a8a4a', '#5a8a4a', '#7a9a4a', '#c9a961', '#c9a961', '#c97a30', '#c97a30', '#aa4444', '#aa4444', '#7a1f1f'];
+  const DANGER_COLOR = ['', '#4a8a4a', '#5a8a4a', '#7a9a4a', '#4a8fb5', '#4a8fb5', '#c97a30', '#c97a30', '#aa4444', '#aa4444', '#7a1f1f'];
 
-  // Mini Pixi map
-  let mapContainer: HTMLDivElement;
-  let view: StrategicView | null = null;
-  const unsubs: (() => void)[] = [];
+  const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+  const TILE_ATTR =
+    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
-  onMount(async () => {
-    const app = new Application();
-    await app.init({ resizeTo: mapContainer, background: 0x0d0d0c, antialias: true });
-    mapContainer.appendChild(app.canvas as HTMLCanvasElement);
+  let mapEl: HTMLDivElement;
+  let map: L.Map | null = null;
+  let markers: Record<string, L.Marker> = {};
 
-    // Show all zones fully visible (selectionMode = true)
-    const allZones = INITIAL_ZONES.map((z) => ({ ...z, fog: 'explored' as const }));
-    view = new StrategicView(app);
-    view.render(allZones, '', selectedId, (id) => {
-      if (startableZones.find((z) => z.id === id)) selectedId = id;
-    }, true);
-
-    const ro = new ResizeObserver(() => redraw());
-    ro.observe(mapContainer);
-    unsubs.push(() => ro.disconnect());
-  });
-
-  function redraw() {
-    if (!view) return;
-    const allZones = INITIAL_ZONES.map((z) => ({ ...z, fog: 'explored' as const }));
-    view.render(allZones, '', selectedId, (id) => {
-      if (startableZones.find((z) => z.id === id)) selectedId = id;
-    }, true);
+  function markerHtml(zone: ZoneStateDef, isSelected: boolean): string {
+    const cls = [
+      'zm',
+      'zm--explored',
+      zone.canStart && 'zm--startable',
+      isSelected && 'zm--selected',
+    ]
+      .filter(Boolean)
+      .join(' ');
+    return `<div class="${cls}">
+      <div class="zm__dot">${isSelected ? '<div class="zm__ring"></div>' : ''}</div>
+      <div class="zm__label">${zone.name}</div>
+    </div>`;
   }
 
-  $effect(() => {
-    selectedId; // track
-    redraw();
+  function drawMarkers() {
+    if (!map) return;
+    Object.values(markers).forEach((m) => map!.removeLayer(m));
+    markers = {};
+
+    for (const zone of INITIAL_ZONES) {
+      const isSelected = zone.id === selectedId;
+      const icon = L.divIcon({
+        html: markerHtml(zone as ZoneStateDef, isSelected),
+        className: '',
+        iconSize: [0, 0],
+        iconAnchor: [5, 5],
+      });
+      const m = L.marker(zone.coords as L.LatLngTuple, { icon, interactive: zone.canStart }).addTo(map!);
+      if (zone.canStart) {
+        m.on('click', () => { selectedId = zone.id; });
+      }
+      markers[zone.id] = m;
+    }
+
+    // Pan to selected zone
+    const sel = INITIAL_ZONES.find((z) => z.id === selectedId);
+    if (sel) map.panTo(sel.coords as L.LatLngTuple, { animate: true });
+  }
+
+  onMount(() => {
+    map = L.map(mapEl, { zoomControl: true, attributionControl: true }).setView(
+      [21.882, -102.296],
+      13,
+    );
+    L.tileLayer(TILE_URL, {
+      attribution: TILE_ATTR,
+      subdomains: 'abcd',
+      maxZoom: 17,
+    }).addTo(map);
+    drawMarkers();
   });
 
-  onDestroy(() => {
-    unsubs.forEach((fn) => fn());
-    view?.destroy();
+  onDestroy(() => { map?.remove(); });
+
+  $effect(() => {
+    selectedId;
+    drawMarkers();
   });
 
   function startGame() {
@@ -66,7 +91,7 @@
 </script>
 
 <div class="select-area">
-  <div class="select-area__map" bind:this={mapContainer}></div>
+  <div class="select-area__map" bind:this={mapEl}></div>
 
   <aside class="select-area__panel">
     <div class="select-area__header">
@@ -128,20 +153,19 @@
     overflow: hidden;
   }
 
-  .select-area__map :global(canvas) { display: block; }
-
   .select-area__panel {
     width: 300px;
-    border-left: 1px solid #222;
+    border-left: 1px solid var(--color-border);
     display: flex;
     flex-direction: column;
     overflow: hidden;
     flex-shrink: 0;
+    background: var(--color-surface);
   }
 
   .select-area__header {
     padding: 1.25rem 1rem 0.75rem;
-    border-bottom: 1px solid #222;
+    border-bottom: 1px solid var(--color-border);
     flex-shrink: 0;
   }
 
@@ -169,12 +193,12 @@
     flex-direction: column;
     gap: 0.4rem;
     scrollbar-width: thin;
-    scrollbar-color: #333 transparent;
+    scrollbar-color: var(--color-border) transparent;
   }
 
   .zone-card {
-    background: #111110;
-    border: 1px solid #2a2a28;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
     padding: 0.7rem 0.8rem;
     text-align: left;
     cursor: pointer;
@@ -184,8 +208,8 @@
     width: 100%;
   }
 
-  .zone-card:hover { border-color: #444440; background: #161614; }
-  .zone-card--active { border-color: var(--color-hope); background: #1a1810; }
+  .zone-card:hover { border-color: #2e4460; background: #111820; }
+  .zone-card--active { border-color: var(--color-hope); background: #101c28; }
 
   .zone-card__header {
     display: flex;
@@ -200,8 +224,6 @@
     color: var(--color-hope);
     letter-spacing: 0.04em;
   }
-
-  .zone-card--active .zone-card__name { color: var(--color-hope); }
 
   .zone-card__type {
     font-size: 0.56rem;
@@ -224,31 +246,19 @@
     align-items: center;
   }
 
-  .zone-card__danger {
-    font-size: 0.6rem;
-    letter-spacing: 0.06em;
-  }
-
-  .zone-card__loot {
-    font-size: 0.58rem;
-    letter-spacing: 0.06em;
-    opacity: 0.4;
-    text-transform: uppercase;
-  }
+  .zone-card__danger { font-size: 0.6rem; letter-spacing: 0.06em; }
+  .zone-card__loot { font-size: 0.58rem; letter-spacing: 0.06em; opacity: 0.4; text-transform: uppercase; }
 
   .select-area__confirm {
     padding: 0.75rem 1rem;
-    border-top: 1px solid #222;
+    border-top: 1px solid var(--color-border);
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
     flex-shrink: 0;
   }
 
-  .select-area__selected-info {
-    display: flex;
-    flex-direction: column;
-  }
+  .select-area__selected-info { display: flex; flex-direction: column; }
 
   .select-area__selected-name {
     font-size: 0.88rem;

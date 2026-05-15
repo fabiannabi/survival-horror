@@ -19,3 +19,93 @@ html, body {
   display: flex;
   flex-direction: column;
 }
+
+/* ── Zone Markers (Leaflet DivIcon) ─────────────────────────────────── */
+
+.zm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.zm__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--color-hope);
+  background: var(--color-bg);
+  position: relative;
+  flex-shrink: 0;
+  transition: box-shadow 0.2s;
+}
+
+.zm__label {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--color-text);
+  white-space: nowrap;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.95), 0 0 8px rgba(0,0,0,0.7);
+  margin-top: 3px;
+  line-height: 1;
+}
+
+.zm__you {
+  font-family: var(--font-ui);
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--color-hope);
+  margin-top: 2px;
+  letter-spacing: 0.14em;
+}
+
+/* fog states */
+.zm--scouted .zm__dot   { opacity: 0.5; border-color: #3a5a70; }
+.zm--scouted .zm__label { opacity: 0.45; }
+.zm--explored .zm__dot  { opacity: 1; }
+.zm--explored .zm__label { opacity: 0.9; }
+
+/* current player location */
+.zm--current .zm__dot {
+  background: var(--color-hope);
+  border-color: #7abbd8;
+  box-shadow: 0 0 10px rgba(74, 143, 181, 0.65);
+}
+
+/* selected zone */
+.zm--selected .zm__dot {
+  border-color: #ffffff;
+  box-shadow: 0 0 8px rgba(255,255,255,0.45);
+}
+
+/* startable zone (selection screen) */
+.zm--startable .zm__dot {
+  border-color: #5fc88a;
+  box-shadow: 0 0 6px rgba(95, 200, 138, 0.5);
+}
+.zm--startable.zm--selected .zm__dot {
+  background: #5fc88a;
+  border-color: #8fe8aa;
+  box-shadow: 0 0 12px rgba(95, 200, 138, 0.7);
+}
+
+/* pulse ring for current location */
+.zm__ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-hope);
+  animation: zm-pulse 2s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes zm-pulse {
+  0%   { transform: translate(-50%, -50%) scale(0.7); opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; }
+}

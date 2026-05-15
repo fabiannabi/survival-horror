@@ -30,8 +30,10 @@
     "vitest": "^4.1.6"
   },
   "dependencies": {
+    "@types/leaflet": "^1.9.21",
     "dexie": "^4.4.2",
     "inkjs": "^2.4.0",
+    "leaflet": "^1.9.4",
     "lz-string": "^1.5.0",
     "pixi.js": "^8.18.1",
     "rot-js": "^2.2.1"

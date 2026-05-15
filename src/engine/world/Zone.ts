@@ -8,6 +8,7 @@ export interface ZoneState {
   id: string;
   name: string;
   type: ZoneType;
+  coords: [number, number];
   position: { x: number; y: number };
   connections: string[];
   travelCost: Record<string, number>;

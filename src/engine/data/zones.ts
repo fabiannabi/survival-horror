@@ -1,16 +1,5 @@
 import type { ZoneState } from '../world/Zone';
 
-/*
-  Mapa de Aguascalientes (posiciones normalizadas 0-1)
-  Basado en la geografía real de la ciudad:
-
-  [Zona Industrial]---[Estadio Victoria]---[Campus UAA]---[Expo Ags]
-         |                   |                   |              |
-  [Col. Insurgentes]---[Centro Histórico]--[Mercado Terán]--[Hospital IMSS]
-         |                   |
-  [Parque Alcalde]----[Barrio San Marcos]--[Las Fuentes]--[Aeropuerto]
-*/
-
 export interface ZoneStateDef extends ZoneState {
   canStart: boolean;
   startDescription?: string;
@@ -22,6 +11,7 @@ export const INITIAL_ZONES: ZoneStateDef[] = [
     id: 'zona_industrial',
     name: 'Zona Industrial',
     type: 'industrial',
+    coords: [21.8950, -102.3620],
     position: { x: 0.14, y: 0.12 },
     connections: ['estadio', 'insurgentes'],
     travelCost: { estadio: 30, insurgentes: 25 },
@@ -37,6 +27,7 @@ export const INITIAL_ZONES: ZoneStateDef[] = [
     id: 'estadio',
     name: 'Estadio Victoria',
     type: 'wild',
+    coords: [21.8870, -102.3058],
     position: { x: 0.38, y: 0.12 },
     connections: ['zona_industrial', 'uaa', 'insurgentes'],
     travelCost: { zona_industrial: 30, uaa: 30, insurgentes: 30 },
@@ -52,6 +43,7 @@ export const INITIAL_ZONES: ZoneStateDef[] = [
     id: 'uaa',
     name: 'Campus UAA',
     type: 'residential',
+    coords: [21.9040, -102.2878],
     position: { x: 0.62, y: 0.12 },
     connections: ['estadio', 'expo', 'mercado_teran'],
     travelCost: { estadio: 30, expo: 25, mercado_teran: 35 },
@@ -69,6 +61,7 @@ export const INITIAL_ZONES: ZoneStateDef[] = [
     id: 'expo',
     name: 'Expo Aguascalientes',
     type: 'commercial',
+    coords: [21.9118, -102.2714],
     position: { x: 0.85, y: 0.22 },
     connections: ['uaa', 'hospital_imss', 'las_fuentes'],
     travelCost: { uaa: 25, hospital_imss: 30, las_fuentes: 35 },
@@ -86,6 +79,7 @@ export const INITIAL_ZONES: ZoneStateDef[] = [
     id: 'insurgentes',
     name: 'Col. Insurgentes',
     type: 'residential',
+    coords: [21.8698, -102.3175],
     position: { x: 0.10, y: 0.45 },
     connections: ['zona_industrial', 'estadio', 'centro', 'parque_alcalde'],
     travelCost: { zona_industrial: 25, estadio: 30, centro: 25, parque_alcalde: 25 },
@@ -103,6 +97,7 @@ export const INITIAL_ZONES: ZoneStateDef[] = [
     id: 'centro',
     name: 'Centro Histórico',
     type: 'commercial',
+    coords: [21.8823, -102.2961],
     position: { x: 0.38, y: 0.45 },
     connections: ['insurgentes', 'mercado_teran', 'san_marcos', 'parque_alcalde'],
     travelCost: { insurgentes: 25, mercado_teran: 20, san_marcos: 25, parque_alcalde: 25 },
@@ -123,6 +118,7 @@ export const INITIAL_ZONES: ZoneStateDef[] = [
     id: 'mercado_teran',
     name: 'Mercado Terán',
     type: 'commercial',
+    coords: [21.8819, -102.2818],
     position: { x: 0.60, y: 0.43 },
     connections: ['centro', 'uaa', 'hospital_imss'],
     travelCost: { centro: 20, uaa: 35, hospital_imss: 25 },
@@ -138,6 +134,7 @@ export const INITIAL_ZONES: ZoneStateDef[] = [
     id: 'hospital_imss',
     name: 'Hospital IMSS',
     type: 'medical',
+    coords: [21.8753, -102.2685],
     position: { x: 0.85, y: 0.45 },
     connections: ['mercado_teran', 'expo', 'las_fuentes'],
     travelCost: { mercado_teran: 25, expo: 30, las_fuentes: 25 },
@@ -155,6 +152,7 @@ export const INITIAL_ZONES: ZoneStateDef[] = [
     id: 'parque_alcalde',
     name: 'Parque Alcalde',
     type: 'wild',
+    coords: [21.8613, -102.3012],
     position: { x: 0.18, y: 0.72 },
     connections: ['insurgentes', 'centro', 'san_marcos'],
     travelCost: { insurgentes: 25, centro: 25, san_marcos: 30 },
@@ -172,6 +170,7 @@ export const INITIAL_ZONES: ZoneStateDef[] = [
     id: 'san_marcos',
     name: 'Barrio San Marcos',
     type: 'residential',
+    coords: [21.8689, -102.2912],
     position: { x: 0.45, y: 0.75 },
     connections: ['centro', 'parque_alcalde', 'las_fuentes'],
     travelCost: { centro: 25, parque_alcalde: 30, las_fuentes: 25 },
@@ -189,6 +188,7 @@ export const INITIAL_ZONES: ZoneStateDef[] = [
     id: 'las_fuentes',
     name: 'Col. Las Fuentes',
     type: 'residential',
+    coords: [21.8576, -102.2694],
     position: { x: 0.68, y: 0.72 },
     connections: ['expo', 'hospital_imss', 'san_marcos', 'aeropuerto'],
     travelCost: { expo: 35, hospital_imss: 25, san_marcos: 25, aeropuerto: 30 },
@@ -204,6 +204,7 @@ export const INITIAL_ZONES: ZoneStateDef[] = [
     id: 'aeropuerto',
     name: 'Aeropuerto Internacional',
     type: 'military',
+    coords: [21.7056, -102.3181],
     position: { x: 0.82, y: 0.86 },
     connections: ['las_fuentes'],
     travelCost: { las_fuentes: 30 },

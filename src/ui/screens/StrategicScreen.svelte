@@ -1,53 +1,103 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { get } from 'svelte/store';
-  import { Application } from 'pixi.js';
-  import { StrategicView } from '../../render/StrategicView';
+  import L from 'leaflet';
   import { worldStore } from '../../stores/worldStore';
   import { uiStore } from '../../stores/uiStore';
+  import { FogOfWar } from '../../engine/world/FogOfWar';
+  import type { FogLevel } from '../../engine/world/Zone';
   import TimeIndicator from '../widgets/TimeIndicator.svelte';
   import ZonePanel from '../panels/ZonePanel.svelte';
   import LogPanel from '../panels/LogPanel.svelte';
 
-  let mapContainer: HTMLDivElement;
-  let view: StrategicView | null = null;
+  let mapEl: HTMLDivElement;
+  let map: L.Map | null = null;
+  let markers: Record<string, L.Marker> = {};
+  let connLines: L.Polyline[] = [];
   const unsubs: (() => void)[] = [];
 
-  function rerender() {
-    if (!view) return;
-    const world = get(worldStore);
-    const ui = get(uiStore);
-    view.render(
-      Object.values(world.zones),
-      world.currentZoneId,
-      ui.selectedZoneId,
-      (id) => uiStore.selectZone(id),
-    );
+  const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+  const TILE_ATTR =
+    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+
+  function markerHtml(name: string, fog: FogLevel, isCurrent: boolean, isSelected: boolean): string {
+    const cls = ['zm', `zm--${fog}`, isCurrent && 'zm--current', isSelected && 'zm--selected']
+      .filter(Boolean)
+      .join(' ');
+    const visible = FogOfWar.isVisible(fog);
+    return `<div class="${cls}">
+      <div class="zm__dot">${isCurrent ? '<div class="zm__ring"></div>' : ''}</div>
+      ${visible ? `<div class="zm__label">${name}</div>` : ''}
+      ${isCurrent ? '<div class="zm__you">TÚ</div>' : ''}
+    </div>`;
   }
 
-  onMount(async () => {
-    const app = new Application();
-    await app.init({
-      resizeTo: mapContainer,
-      background: 0x0f0f0d,
-      antialias: true,
-    });
-    mapContainer.appendChild(app.canvas as HTMLCanvasElement);
+  function redraw() {
+    if (!map) return;
+    const world = get(worldStore);
+    const ui = get(uiStore);
 
-    view = new StrategicView(app);
-    rerender();
+    connLines.forEach((l) => map!.removeLayer(l));
+    connLines = [];
+    Object.values(markers).forEach((m) => map!.removeLayer(m));
+    markers = {};
 
-    unsubs.push(worldStore.subscribe(rerender));
-    unsubs.push(uiStore.subscribe(rerender));
+    const zones = Object.values(world.zones);
+    const drawn = new Set<string>();
 
-    const ro = new ResizeObserver(rerender);
-    ro.observe(mapContainer);
-    unsubs.push(() => ro.disconnect());
+    for (const zone of zones) {
+      if (!FogOfWar.isVisible(zone.fog)) continue;
+      for (const cid of zone.connections) {
+        const c = world.zones[cid];
+        if (!c || !FogOfWar.isVisible(c.fog)) continue;
+        const key = [zone.id, cid].sort().join('|');
+        if (drawn.has(key)) continue;
+        drawn.add(key);
+        connLines.push(
+          L.polyline([zone.coords as L.LatLngTuple, c.coords as L.LatLngTuple], {
+            color: '#2a4060',
+            weight: 2,
+            opacity: 0.8,
+            dashArray: '6 4',
+          }).addTo(map!),
+        );
+      }
+    }
+
+    for (const zone of zones) {
+      if (zone.fog === 'unknown') continue;
+      const isCurrent = zone.id === world.currentZoneId;
+      const isSelected = zone.id === ui.selectedZoneId;
+      const icon = L.divIcon({
+        html: markerHtml(zone.name, zone.fog, isCurrent, isSelected),
+        className: '',
+        iconSize: [0, 0],
+        iconAnchor: [5, 5],
+      });
+      const m = L.marker(zone.coords as L.LatLngTuple, { icon, interactive: true }).addTo(map!);
+      m.on('click', () => uiStore.selectZone(zone.id));
+      markers[zone.id] = m;
+    }
+  }
+
+  onMount(() => {
+    map = L.map(mapEl, { zoomControl: true, attributionControl: true }).setView(
+      [21.882, -102.296],
+      13,
+    );
+    L.tileLayer(TILE_URL, {
+      attribution: TILE_ATTR,
+      subdomains: 'abcd',
+      maxZoom: 17,
+    }).addTo(map);
+    redraw();
+    unsubs.push(worldStore.subscribe(redraw));
+    unsubs.push(uiStore.subscribe(redraw));
   });
 
   onDestroy(() => {
     unsubs.forEach((fn) => fn());
-    view?.destroy();
+    map?.remove();
   });
 </script>
 
@@ -61,17 +111,13 @@
     <div class="strategic__threat">
       <span class="strategic__threat-label">AMENAZA</span>
       <div class="strategic__threat-bar">
-        <div
-          class="strategic__threat-fill"
-          style="width:{$worldStore.globalThreat}%"
-        ></div>
+        <div class="strategic__threat-fill" style="width:{$worldStore.globalThreat}%"></div>
       </div>
     </div>
   </header>
 
   <div class="strategic__body">
-    <div class="strategic__map" bind:this={mapContainer}></div>
-
+    <div class="strategic__map" bind:this={mapEl}></div>
     <aside class="strategic__sidebar">
       <ZonePanel />
       <LogPanel />
@@ -93,7 +139,7 @@
   .strategic__hud {
     display: flex;
     align-items: stretch;
-    border-bottom: 1px solid #222;
+    border-bottom: 1px solid var(--color-border);
     flex-shrink: 0;
   }
 
@@ -103,7 +149,7 @@
     flex-direction: column;
     justify-content: center;
     padding: 0 1rem;
-    border-left: 1px solid #222;
+    border-left: 1px solid var(--color-border);
   }
 
   .strategic__city-label,
@@ -123,7 +169,7 @@
   .strategic__threat-bar {
     width: 72px;
     height: 4px;
-    background: #2a2a2a;
+    background: var(--color-border);
     margin-top: 4px;
   }
 
@@ -145,13 +191,9 @@
     overflow: hidden;
   }
 
-  .strategic__map :global(canvas) {
-    display: block;
-  }
-
   .strategic__sidebar {
     width: 260px;
-    border-left: 1px solid #222;
+    border-left: 1px solid var(--color-border);
     display: flex;
     flex-direction: column;
     overflow: hidden;

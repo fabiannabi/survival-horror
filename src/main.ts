@@ -1,4 +1,5 @@
 import { mount } from 'svelte';
+import 'leaflet/dist/leaflet.css';
 import './styles/global.css';
 import App from './App.svelte';
 

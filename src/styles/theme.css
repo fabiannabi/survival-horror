@@ -1,11 +1,14 @@
 :root {
-  --color-bg: #0f0f0d;
-  --color-text: #d4d4c8;
-  --color-blood: #7a1f1f;
-  --color-infection: #5c6e2e;
-  --color-hope: #c9a961;
-  --color-fog: #2a2a28;
-  --color-fog-overlay: rgba(0, 0, 0, 0.6);
+  --color-bg: #0d1117;
+  --color-surface: #111820;
+  --color-border: #1e2d3d;
+  --color-text: #c5c9d0;
+  --color-text-dim: rgba(197, 201, 208, 0.4);
+  --color-blood: #8f2828;
+  --color-infection: #3a5e2a;
+  --color-hope: #4a8fb5;
+  --color-fog: #1a2030;
+  --color-fog-overlay: rgba(0, 0, 0, 0.65);
 
   --font-ui: 'Barlow Condensed', 'Oswald', sans-serif;
   --font-narrative: 'Special Elite', 'Courier Prime', monospace;
