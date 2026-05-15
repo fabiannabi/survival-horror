@@ -1,5 +1,6 @@
 import { Application, Container, Graphics } from 'pixi.js';
 import type { ZoneMapState, Tile } from '../engine/world/ZoneMap';
+import type { ZombieState } from '../engine/entities/Zombie';
 
 const T = 16;
 
@@ -27,7 +28,10 @@ export class TacticalView {
     app.stage.addChild(this.world);
   }
 
-  render(state: ZoneMapState, onTileClick: (x: number, y: number) => void) {
+  render(
+    state: ZoneMapState & { zombies?: ZombieState[] },
+    onTileClick: (x: number, y: number) => void,
+  ) {
     this.world.removeChildren();
     const g = new Graphics();
 
@@ -36,6 +40,15 @@ export class TacticalView {
         const color = this.tileColor(state.tiles[y][x]);
         if (color !== null) g.rect(x * T, y * T, T - 1, T - 1).fill(color);
       }
+    }
+
+    // Visible zombies
+    for (const z of (state.zombies ?? [])) {
+      const tile = state.tiles[z.y]?.[z.x];
+      if (tile?.vis !== 'visible') continue;
+      const zx = z.x * T + T / 2, zy = z.y * T + T / 2;
+      g.circle(zx, zy, 5.5).fill(0xb82828);
+      g.circle(zx, zy, 2.5).fill(0xe05050);
     }
 
     // Player dot with highlight

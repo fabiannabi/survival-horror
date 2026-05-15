@@ -1,9 +1,11 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import { get } from 'svelte/store';
   import { Application } from 'pixi.js';
   import { TacticalView } from '../../render/TacticalView';
   import { tacticalStore } from '../../stores/tacticalStore';
   import { inventoryStore } from '../../stores/inventoryStore';
+  import { playerStore } from '../../stores/playerStore';
   import { worldStore } from '../../stores/worldStore';
   import { gameStore } from '../../stores/gameStore';
   import { uiStore } from '../../stores/uiStore';
@@ -11,7 +13,7 @@
   import PlayerHUD from '../widgets/PlayerHUD.svelte';
   import LootModal from '../widgets/LootModal.svelte';
   import InventoryPanel from '../widgets/InventoryPanel.svelte';
-  import type { TacticalState } from '../../stores/tacticalStore';
+  import type { TacticalState, ActionResult } from '../../stores/tacticalStore';
   import type { Item } from '../../engine/entities/Item';
 
   let canvasEl: HTMLDivElement;
@@ -26,24 +28,64 @@
     return Math.abs(tx - px) <= 1 && Math.abs(ty - py) <= 1;
   }
 
+  function handleResult(result: ActionResult) {
+    if (get(uiStore).screen === 'gameOver') return;
+    if (result.steps > 0) gameStore.playerAction(result.steps);
+    if (get(uiStore).screen === 'gameOver') return;
+
+    for (const ev of result.events) {
+      if (ev.type === 'zombie_attack') {
+        applyZombieDamage(ev.damage, ev.infection);
+        if (get(uiStore).screen === 'gameOver') return;
+      } else if (ev.type === 'player_hit_zombie') {
+        const msg = ev.killed
+          ? `Zombi eliminado. (-${ev.damage} HP)`
+          : `Golpeaste a un zombi. (-${ev.damage} HP)`;
+        gameStore.log(msg);
+      }
+    }
+  }
+
+  function applyZombieDamage(damage: number, infection: number) {
+    playerStore.update(p => ({
+      ...p,
+      health:    Math.max(0, p.health - damage),
+      infection: Math.min(100, p.infection + infection),
+    }));
+    const p = get(playerStore);
+    gameStore.log(`Un zombi te atacó. -${damage} HP, +${infection} infección.`);
+    if (p.health <= 0)       uiStore.triggerGameOver('injury');
+    else if (p.infection >= 100) uiStore.triggerGameOver('infection');
+  }
+
   function handleClick(x: number, y: number) {
     if (!lastState) return;
     const tile = lastState.tiles[y]?.[x];
     if (!tile) return;
 
-    if (tile.type === 'container') {
+    const zombie = lastState.zombies.find(z => z.x === x && z.y === y);
+
+    if (zombie) {
       if (isAdjacent(lastState.playerX, lastState.playerY, x, y)) {
-        const items = tacticalStore.loot(x, y);
-        if (items && items.length > 0) lootItems = [...items];
+        handleResult(tacticalStore.attack(x, y));
       } else {
-        const steps = tacticalStore.moveAdjacentTo(x, y);
-        if (steps > 0) gameStore.playerAction(steps);
+        handleResult(tacticalStore.moveAdjacentTo(x, y));
       }
       return;
     }
 
-    const steps = tacticalStore.moveTo(x, y);
-    if (steps > 0) gameStore.playerAction(steps);
+    if (tile.type === 'container') {
+      if (isAdjacent(lastState.playerX, lastState.playerY, x, y)) {
+        const { items, ...result } = tacticalStore.loot(x, y);
+        if (items && items.length > 0) lootItems = [...items];
+        handleResult(result);
+      } else {
+        handleResult(tacticalStore.moveAdjacentTo(x, y));
+      }
+      return;
+    }
+
+    handleResult(tacticalStore.moveTo(x, y));
   }
 
   function takeLootItem(item: Item) {
@@ -53,10 +95,7 @@
   }
 
   function takeAllLoot() {
-    if (lootItems) {
-      inventoryStore.addMany(lootItems);
-      lootItems = null;
-    }
+    if (lootItems) { inventoryStore.addMany(lootItems); lootItems = null; }
   }
 
   function exitTactical() {
@@ -93,6 +132,7 @@
 
   $: zoneName = $worldStore.zones[$worldStore.currentZoneId]?.name ?? '';
   $: invCount = $inventoryStore.length;
+  $: zombieCount = lastState?.zombies.length ?? 0;
 </script>
 
 <div class="tactical">
@@ -102,12 +142,18 @@
       <span class="tactical__zone-label">ZONA TÁCTICA</span>
       <span class="tactical__zone-name">{zoneName}</span>
     </div>
+    {#if zombieCount > 0}
+      <div class="tactical__threat">
+        <span class="tactical__threat-label">AMENAZA</span>
+        <span class="tactical__threat-count">{zombieCount}</span>
+      </div>
+    {/if}
     <button
       class="tactical__inv-btn"
       class:tactical__inv-btn--has={invCount > 0}
       onclick={() => { showInventory = !showInventory; lootItems = null; }}
     >
-      MOCHILA {#if invCount > 0}<span class="tactical__inv-count">({invCount})</span>{/if}
+      MOCHILA{#if invCount > 0} <span class="tactical__inv-count">({invCount})</span>{/if}
     </button>
     <button class="tactical__exit-btn" onclick={exitTactical}>← Salir</button>
   </header>
@@ -132,7 +178,8 @@
   </div>
 
   <div class="tactical__hint">
-    Toca un tile para moverte · <span class="tactical__hint--cont">marrón</span> = contenedor ·
+    Mueve · <span class="tactical__hint--zombie">rojo</span> = zombi (toca para atacar) ·
+    <span class="tactical__hint--cont">marrón</span> = contenedor ·
     <span class="tactical__hint--exit">verde</span> = salida
   </div>
 </div>
@@ -177,6 +224,27 @@
     letter-spacing: 0.05em;
   }
 
+  .tactical__threat {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 0.75rem;
+    border-left: 1px solid var(--color-border);
+  }
+
+  .tactical__threat-label {
+    font-size: 0.5rem;
+    letter-spacing: 0.15em;
+    opacity: 0.3;
+    text-transform: uppercase;
+  }
+
+  .tactical__threat-count {
+    font-size: 0.82rem;
+    color: var(--color-blood);
+    font-weight: 700;
+  }
+
   .tactical__inv-btn {
     margin-left: auto;
     padding: 0 0.85rem;
@@ -197,10 +265,7 @@
 
   .tactical__inv-btn--has { opacity: 0.85; color: var(--color-hope); }
   .tactical__inv-btn:hover { opacity: 1; background: var(--color-surface); }
-
-  .tactical__inv-count {
-    opacity: 0.75;
-  }
+  .tactical__inv-count { opacity: 0.75; }
 
   .tactical__exit-btn {
     padding: 0 1rem;
@@ -245,11 +310,13 @@
     flex-shrink: 0;
   }
 
-  .tactical__hint--exit { color: #2a7040; opacity: 1; }
-  .tactical__hint--cont { color: #5a3a18; opacity: 1; }
+  .tactical__hint--zombie { color: #b82828; opacity: 1; }
+  .tactical__hint--exit   { color: #2a7040; opacity: 1; }
+  .tactical__hint--cont   { color: #5a3a18; opacity: 1; }
 
   @media (max-width: 640px) {
-    .tactical__zone { display: none; }
+    .tactical__zone,
+    .tactical__threat { display: none; }
     .tactical__inv-btn { padding: 0 0.6rem; font-size: 0.6rem; }
     .tactical__exit-btn { padding: 0 0.75rem; font-size: 0.72rem; }
     .tactical__hint { font-size: 0.52rem; padding: 0.25rem 0.5rem; }

@@ -138,13 +138,18 @@ function createGameStore() {
       const world = get(worldStore);
       const zone = world.zones[world.currentZoneId];
       if (!zone) return;
-      tacticalStore.enter(zone.id, zone.type, gameSeed);
+      tacticalStore.enter(zone.id, zone.type, gameSeed, zone.danger);
       uiStore.setPlayerMode('tactical');
     },
 
     exitTactical() {
       tacticalStore.exit();
       uiStore.setPlayerMode('strategic');
+    },
+
+    log(message: string) {
+      if (!logger) return;
+      logger.info(message, get(timeStore));
     },
 
     getRNG(): RNG | null { return rng; },
