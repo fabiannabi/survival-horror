@@ -1,4 +1,4 @@
-import { Application, Graphics, Container, Text, Circle } from 'pixi.js';
+import { Application, Graphics, Container, Text } from 'pixi.js';
 import type { ZoneState } from '../engine/world/Zone';
 import { FogOfWar } from '../engine/world/FogOfWar';
 
@@ -58,12 +58,12 @@ export class StrategicView {
 
     this.drawBackground(width, height);
 
-    // Voronoi territory polygons
+    // Voronoi territory polygons — these ARE the primary click targets
     for (const zone of zones) {
       const visible = selectionMode || FogOfWar.isVisible(zone.fog);
       const fogAlpha = selectionMode ? 1 : FogOfWar.alpha(zone.fog);
       if (zone.polygon && zone.polygon.length >= 3) {
-        this.drawVoronoiCell(zone, tx, ty, visible ? fogAlpha : 0.04);
+        this.drawVoronoiCell(zone, tx, ty, visible ? fogAlpha : 0.04, visible ? onClick : undefined);
       }
     }
 
@@ -89,20 +89,15 @@ export class StrategicView {
       }
     }
 
-    // Zone markers (on top of everything)
+    // Zone markers — decorative + secondary click target on the disc Graphics
     for (const zone of zones) {
       const visible = selectionMode || FogOfWar.isVisible(zone.fog);
       if (!visible) continue;
 
       const fogAlpha = selectionMode ? 1 : FogOfWar.alpha(zone.fog);
-      const isCurrent = zone.id === currentZoneId;
-      const node = this.buildMarker(zone, currentZoneId, selectedZoneId, fogAlpha, selectionMode);
+      const node = this.buildMarker(zone, currentZoneId, selectedZoneId, fogAlpha, selectionMode, onClick);
       node.x = tx(zone.position.x);
       node.y = ty(zone.position.y);
-      node.hitArea = new Circle(0, 0, isCurrent ? 26 : 22);
-      node.eventMode = 'static';
-      node.cursor = 'pointer';
-      node.on('pointerdown', () => onClick(zone.id));
       this.zoneLayer.addChild(node);
     }
   }
@@ -113,6 +108,7 @@ export class StrategicView {
     tx: (x: number) => number,
     ty: (y: number) => number,
     alpha: number,
+    onClick?: ClickHandler,
   ): void {
     const color = ZONE_COLORS[zone.type] ?? 0x444444;
     const flatPts = zone.polygon.flatMap(p => [tx(p.x), ty(p.y)]);
@@ -121,7 +117,15 @@ export class StrategicView {
     g.poly(flatPts, true);
     g.fill({ color, alpha: alpha * 0.22 });
     g.stroke({ color, width: 1.5, alpha: alpha * 0.45 });
-    g.eventMode = 'none';
+
+    if (onClick) {
+      g.eventMode = 'static';
+      g.cursor = 'pointer';
+      g.on('pointerdown', () => onClick(zone.id));
+    } else {
+      g.eventMode = 'none';
+    }
+
     this.voronoiLayer.addChild(g);
   }
 
@@ -141,6 +145,7 @@ export class StrategicView {
       grid.moveTo(0, y); grid.lineTo(w, y);
     }
     grid.stroke({ color: 0x161614, width: 1 });
+    grid.eventMode = 'none';
     this.bgLayer.addChild(grid);
 
     const watermark = new Text({
@@ -156,6 +161,7 @@ export class StrategicView {
     watermark.anchor.set(0.5);
     watermark.x = w / 2;
     watermark.y = h / 2;
+    watermark.eventMode = 'none';
     this.bgLayer.addChild(watermark);
   }
 
@@ -186,6 +192,7 @@ export class StrategicView {
     g.circle(0, 0, 10);
     g.fill({ color: 0x222220, alpha: 0.6 });
     g.x = x; g.y = y;
+    g.eventMode = 'none';
     this.voronoiLayer.addChild(g);
 
     const label = new Text({
@@ -194,6 +201,7 @@ export class StrategicView {
     });
     label.anchor.set(0.5);
     label.x = x; label.y = y;
+    label.eventMode = 'none';
     this.voronoiLayer.addChild(label);
   }
 
@@ -204,6 +212,7 @@ export class StrategicView {
     selectedId: string | null,
     alpha: number,
     selectionMode: boolean,
+    onClick: ClickHandler,
   ): Container {
     const c = new Container();
     const isCurrent  = zone.id === currentId;
@@ -216,14 +225,17 @@ export class StrategicView {
       glow.circle(0, 0, r + 11);
       glow.fill({ color: 0xc9a961, alpha: 0.08 });
       glow.stroke({ color: 0xc9a961, width: 1.5, alpha: 0.6 });
+      glow.eventMode = 'none';
       c.addChild(glow);
     }
 
     const ring = new Graphics();
     ring.circle(0, 0, r + 3);
     ring.fill({ color: 0x0d0d0c, alpha });
+    ring.eventMode = 'none';
     c.addChild(ring);
 
+    // disc is the primary marker click target
     const disc = new Graphics();
     disc.circle(0, 0, r);
     disc.fill({ color, alpha });
@@ -232,12 +244,16 @@ export class StrategicView {
       width: isCurrent ? 2.5 : 1.5,
       alpha,
     });
+    disc.eventMode = 'static';
+    disc.cursor = 'pointer';
+    disc.on('pointerdown', () => onClick(zone.id));
     c.addChild(disc);
 
     if (isCurrent) {
       const dot = new Graphics();
       dot.circle(0, 0, 6);
       dot.fill({ color: 0xc9a961 });
+      dot.eventMode = 'none';
       c.addChild(dot);
     }
 
@@ -245,9 +261,11 @@ export class StrategicView {
       const badge = new Graphics();
       badge.circle(r - 2, -r + 2, 7);
       badge.fill({ color: 0x7a1f1f });
+      badge.eventMode = 'none';
       const danger = new Text({ text: '!', style: { fill: 0xff8888, fontSize: 9, fontWeight: '700' } });
       danger.anchor.set(0.5);
       danger.x = r - 2; danger.y = -r + 2;
+      danger.eventMode = 'none';
       c.addChild(badge);
       c.addChild(danger);
     }
@@ -259,6 +277,7 @@ export class StrategicView {
       });
       typeIcon.anchor.set(0.5);
       typeIcon.y = isCurrent ? 8 : 6;
+      typeIcon.eventMode = 'none';
       c.addChild(typeIcon);
     }
 
@@ -276,6 +295,7 @@ export class StrategicView {
     });
     nameLabel.anchor.set(0.5, 0);
     nameLabel.y = r + 6;
+    nameLabel.eventMode = 'none';
     c.addChild(nameLabel);
 
     return c;
