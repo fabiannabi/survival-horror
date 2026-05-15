@@ -121,7 +121,10 @@ export class StrategicView {
     if (onClick) {
       g.eventMode = 'static';
       g.cursor = 'pointer';
-      g.on('pointerdown', () => onClick(zone.id));
+      g.on('pointerdown', () => {
+        console.log('[Pixi] voronoi pointerdown zone:', zone.id);
+        onClick(zone.id);
+      });
     } else {
       g.eventMode = 'none';
     }
@@ -246,7 +249,10 @@ export class StrategicView {
     });
     disc.eventMode = 'static';
     disc.cursor = 'pointer';
-    disc.on('pointerdown', () => onClick(zone.id));
+    disc.on('pointerdown', () => {
+      console.log('[Pixi] disc pointerdown zone:', zone.id);
+      onClick(zone.id);
+    });
     c.addChild(disc);
 
     if (isCurrent) {

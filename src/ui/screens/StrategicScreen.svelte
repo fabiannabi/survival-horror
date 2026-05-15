@@ -25,6 +25,7 @@
     const ui = get(uiStore);
     const zones = Object.values(world.zones);
     view.render(zones, world.currentZoneId, ui.selectedZoneId, (id) => {
+      console.log('[Store] selectZone called with', id);
       uiStore.selectZone(id);
     });
   }
@@ -40,6 +41,11 @@
     });
     canvasEl.appendChild(app.canvas);
     view = new StrategicView(app);
+
+    // DOM-level debug: check if native pointer events reach the canvas at all
+    app.canvas.addEventListener('pointerdown', (e) => {
+      console.log('[DOM] canvas pointerdown at', e.offsetX, e.offsetY);
+    });
 
     redraw();
     unsubs.push(worldStore.subscribe(redraw));
