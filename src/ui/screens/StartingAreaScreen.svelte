@@ -66,8 +66,8 @@
 
   onMount(() => {
     map = L.map(mapEl, { zoomControl: true, attributionControl: true }).setView(
-      [21.882, -102.296],
-      13,
+      [21.870, -102.300],
+      12,
     );
     L.tileLayer(TILE_URL, {
       attribution: TILE_ATTR,
