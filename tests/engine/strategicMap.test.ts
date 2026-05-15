@@ -10,12 +10,12 @@ const zones: Record<string, ZoneState> = Object.fromEntries(
 );
 
 describe('StrategicMap', () => {
-  it('refugio is connected to gasolinera', () => {
-    expect(StrategicMap.isConnected(zones, 'refugio', 'gasolinera')).toBe(true);
+  it('centro is connected to mercado_teran', () => {
+    expect(StrategicMap.isConnected(zones, 'centro', 'mercado_teran')).toBe(true);
   });
 
-  it('refugio is NOT directly connected to cuartel', () => {
-    expect(StrategicMap.isConnected(zones, 'refugio', 'cuartel')).toBe(false);
+  it('centro is NOT directly connected to aeropuerto', () => {
+    expect(StrategicMap.isConnected(zones, 'centro', 'aeropuerto')).toBe(false);
   });
 
   it('all connections are bidirectional', () => {
@@ -30,29 +30,36 @@ describe('StrategicMap', () => {
   });
 
   it('getTravelCost returns correct value', () => {
-    expect(StrategicMap.getTravelCost(zones, 'refugio', 'gasolinera')).toBe(25);
-    expect(StrategicMap.getTravelCost(zones, 'refugio', 'hospital')).toBe(25);
-    expect(StrategicMap.getTravelCost(zones, 'refugio', 'supermercado')).toBe(20);
+    expect(StrategicMap.getTravelCost(zones, 'centro', 'mercado_teran')).toBe(20);
+    expect(StrategicMap.getTravelCost(zones, 'centro', 'insurgentes')).toBe(25);
+    expect(StrategicMap.getTravelCost(zones, 'centro', 'san_marcos')).toBe(25);
   });
 
   it('getTravelCost returns 999 for unconnected zones', () => {
-    expect(StrategicMap.getTravelCost(zones, 'refugio', 'cuartel')).toBe(999);
+    expect(StrategicMap.getTravelCost(zones, 'centro', 'aeropuerto')).toBe(999);
   });
 
   it('revealAfterTravel explores destination and scouts neighbors', () => {
-    const updated = StrategicMap.revealAfterTravel(zones, 'gasolinera');
+    const updated = StrategicMap.revealAfterTravel(zones, 'mercado_teran');
 
-    expect(updated['gasolinera'].fog).toBe('explored');
-    // parque is a neighbor of gasolinera
-    expect(updated['parque'].fog).toBe('scouted');
-    // refugio was already explored, should not downgrade
-    expect(updated['refugio'].fog).toBe('explored');
+    expect(updated['mercado_teran'].fog).toBe('explored');
+    // uaa is a neighbor of mercado_teran
+    expect(updated['uaa'].fog).toBe('scouted');
   });
 
   it('revealAfterTravel does not downgrade fog', () => {
-    // refugio starts as explored, should stay explored
-    const updated = StrategicMap.revealAfterTravel(zones, 'gasolinera');
-    expect(updated['refugio'].fog).toBe('explored');
+    // centro starts as explored; traveling to mercado_teran shouldn't downgrade centro
+    const updated = StrategicMap.revealAfterTravel(zones, 'mercado_teran');
+    expect(updated['centro'].fog).toBe('explored');
+  });
+
+  it('getConnected returns the connected zone objects', () => {
+    const connected = StrategicMap.getConnected(zones, 'centro');
+    const ids = connected.map((z) => z.id);
+    expect(ids).toContain('mercado_teran');
+    expect(ids).toContain('san_marcos');
+    expect(ids).toContain('insurgentes');
+    expect(ids).toContain('parque_alcalde');
   });
 });
 
@@ -76,29 +83,25 @@ describe('FogOfWar', () => {
     expect(FogOfWar.upgrade('scouted', 'unknown')).toBe('scouted');
   });
 
-  it('alpha is 0 for unknown', () => {
+  it('alpha is 0 for unknown and 1 for explored', () => {
     expect(FogOfWar.alpha('unknown')).toBe(0);
-  });
-
-  it('alpha is 1 for explored', () => {
     expect(FogOfWar.alpha('explored')).toBe(1);
   });
 });
 
 describe('Travel', () => {
   it('canTravel returns true for connected zones', () => {
-    expect(Travel.canTravel(zones, 'refugio', 'hospital')).toBe(true);
+    expect(Travel.canTravel(zones, 'centro', 'mercado_teran')).toBe(true);
   });
 
   it('canTravel returns false for non-adjacent zones', () => {
-    expect(Travel.canTravel(zones, 'refugio', 'bosque')).toBe(false);
+    expect(Travel.canTravel(zones, 'centro', 'aeropuerto')).toBe(false);
   });
 
-  it('describe formats time correctly in minutes', () => {
-    const desc = Travel.describe('Refugio', 'Gasolinera', 25);
-    expect(desc).toContain('25min');
-    expect(desc).toContain('Refugio');
-    expect(desc).toContain('Gasolinera');
+  it('describe formats minutes correctly', () => {
+    const desc = Travel.describe('Centro', 'Mercado Terán', 20);
+    expect(desc).toContain('20min');
+    expect(desc).toContain('Centro');
   });
 
   it('describe formats hours and minutes', () => {

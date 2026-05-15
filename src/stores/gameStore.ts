@@ -5,7 +5,7 @@ import { TurnManager } from '../engine/core/TurnManager';
 import { Logger } from '../engine/core/Logger';
 import { StrategicMap } from '../engine/world/StrategicMap';
 import { Travel } from '../engine/world/Travel';
-import { INITIAL_ZONES } from '../engine/data/zones';
+import { INITIAL_ZONES, type ZoneStateDef } from '../engine/data/zones';
 import { logStore } from './logStore';
 import { timeStore } from './timeStore';
 import { worldStore } from './worldStore';
@@ -25,7 +25,7 @@ function createGameStore() {
   return {
     subscribe,
 
-    newGame(seed?: number) {
+    newGame(seed?: number, startZoneId = 'centro') {
       bus = new EventBus();
       const gameSeed = seed ?? Date.now();
       rng = new RNG(gameSeed);
@@ -39,18 +39,31 @@ function createGameStore() {
       logStore.clear();
 
       // Initialize world with zone data
-      const zones = Object.fromEntries(INITIAL_ZONES.map((z) => [z.id, z]));
+      const startId = startZoneId ?? 'centro';
+      const zones = Object.fromEntries(
+        INITIAL_ZONES.map((z) => {
+          // Reveal start zone + its neighbors
+          if (z.id === startId) return [z.id, { ...z, fog: 'explored' as const }];
+          const startZone = INITIAL_ZONES.find((s) => s.id === startId);
+          if (startZone?.connections.includes(z.id)) return [z.id, { ...z, fog: 'scouted' as const }];
+          return [z.id, z];
+        }),
+      );
       worldStore.set({
-        cityName: 'Villarosa',
-        currentZoneId: 'refugio',
+        cityName: 'Aguascalientes',
+        currentZoneId: startId,
         zones,
         globalThreat: 10,
         weather: 'clear',
       });
-      uiStore.selectZone('refugio');
+      uiStore.selectZone(startId);
 
-      logger.narrative('Despiertas en una ciudad muerta. El silencio es absoluto.', INITIAL_TIME);
-      logger.info('Día 1. El refugio aguanta. Explora el mapa estratégico.', INITIAL_TIME);
+      const startZone = INITIAL_ZONES.find((z) => z.id === startId);
+      logger.narrative(
+        startZone?.startDescription ?? 'Despiertas en una ciudad muerta. El silencio es absoluto.',
+        INITIAL_TIME,
+      );
+      logger.info('Día 1. Aguascalientes ha caído. Explora el mapa.', INITIAL_TIME);
 
       turnManager.schedule('player', 0);
 

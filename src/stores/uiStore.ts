@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 
-export type Screen = 'menu' | 'game' | 'gameOver';
+export type Screen = 'menu' | 'selectArea' | 'game' | 'gameOver';
 export type PlayerMode = 'strategic' | 'tactical' | 'base';
 
 interface UiState {

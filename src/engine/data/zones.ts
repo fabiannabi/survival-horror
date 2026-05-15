@@ -1,169 +1,218 @@
 import type { ZoneState } from '../world/Zone';
 
 /*
-  Mapa de Villarosa (posiciones normalizadas 0-1):
+  Mapa de Aguascalientes (posiciones normalizadas 0-1)
+  Basado en la geografía real de la ciudad:
 
-  bosque(0.15,0.14)---fabrica(0.45,0.14)---cuartel(0.78,0.14)
-       |                    |                    |
-  parque(0.15,0.40)---res_norte(0.45,0.40)---comisaria(0.78,0.40)
-       |                    |                    |
-  gasolinera(0.15,0.64)-REFUGIO(0.45,0.64)--hospital(0.78,0.64)
-                             |                    |
-                       supermercado(0.45,0.86)--res_sur(0.78,0.86)
+  [Zona Industrial]---[Estadio Victoria]---[Campus UAA]---[Expo Ags]
+         |                   |                   |              |
+  [Col. Insurgentes]---[Centro Histórico]--[Mercado Terán]--[Hospital IMSS]
+         |                   |
+  [Parque Alcalde]----[Barrio San Marcos]--[Las Fuentes]--[Aeropuerto]
 */
 
-export const INITIAL_ZONES: ZoneState[] = [
+export interface ZoneStateDef extends ZoneState {
+  canStart: boolean;
+  startDescription?: string;
+}
+
+export const INITIAL_ZONES: ZoneStateDef[] = [
+  // ─── NORTE ─────────────────────────────────────────────────────────
   {
-    id: 'refugio',
-    name: 'Refugio',
-    type: 'residential',
-    position: { x: 0.45, y: 0.64 },
-    connections: ['gasolinera', 'res_norte', 'hospital', 'supermercado'],
-    travelCost: { gasolinera: 25, res_norte: 30, hospital: 25, supermercado: 20 },
-    danger: 2, noise: 1,
-    loot: { abundance: 4, quality: 'low', depleted: 30 },
-    fog: 'explored',
+    id: 'zona_industrial',
+    name: 'Zona Industrial',
+    type: 'industrial',
+    position: { x: 0.14, y: 0.12 },
+    connections: ['estadio', 'insurgentes'],
+    travelCost: { estadio: 30, insurgentes: 25 },
+    danger: 6, noise: 5,
+    loot: { abundance: 7, quality: 'medium', depleted: 0 },
+    fog: 'unknown',
     description:
-      'Un bloque de apartamentos convertido en refugio. Las barricadas aguantan... por ahora.',
-    lore: ['Alguien grabó "DÍA 1" en la pared de entrada. Hay más marcas debajo.'],
+      'El polígono industrial al poniente. Maquiladoras vacías, bodegones silenciosos. Hay materiales de construcción y herramientas si llegas antes que los demás.',
+    lore: ['En la entrada de una nave alguien pintó: "NO ENTRAR — ELLOS SIGUEN AQUÍ".'],
+    canStart: false,
   },
   {
-    id: 'gasolinera',
-    name: 'Gasolinera',
-    type: 'commercial',
-    position: { x: 0.15, y: 0.64 },
-    connections: ['refugio', 'parque'],
-    travelCost: { refugio: 25, parque: 30 },
+    id: 'estadio',
+    name: 'Estadio Victoria',
+    type: 'wild',
+    position: { x: 0.38, y: 0.12 },
+    connections: ['zona_industrial', 'uaa', 'insurgentes'],
+    travelCost: { zona_industrial: 30, uaa: 30, insurgentes: 30 },
     danger: 4, noise: 2,
-    loot: { abundance: 6, quality: 'medium', depleted: 0 },
-    fog: 'scouted',
+    loot: { abundance: 4, quality: 'low', depleted: 0 },
+    fog: 'unknown',
     description:
-      'Una gasolinera abandonada. Los depósitos pueden tener combustible. También pueden tener zombis.',
+      'El Estadio Victoria, ahora en silencio. Las gradas vacías y los vestuarios ofrecen refugio temporal. Hay comida del último partido que nunca se terminó.',
     lore: [],
+    canStart: false,
   },
   {
-    id: 'hospital',
-    name: 'Hospital',
-    type: 'medical',
-    position: { x: 0.78, y: 0.64 },
-    connections: ['refugio', 'comisaria', 'res_sur'],
-    travelCost: { refugio: 25, comisaria: 35, res_sur: 25 },
-    danger: 6, noise: 3,
-    loot: { abundance: 8, quality: 'high', depleted: 0 },
-    fog: 'scouted',
-    description:
-      'El Hospital de San Marcos. Lleno de suministros médicos... y de los que murieron esperando ayuda.',
-    lore: [],
-  },
-  {
-    id: 'res_norte',
-    name: 'Residencial Norte',
+    id: 'uaa',
+    name: 'Campus UAA',
     type: 'residential',
-    position: { x: 0.45, y: 0.40 },
-    connections: ['refugio', 'parque', 'fabrica', 'comisaria'],
-    travelCost: { refugio: 30, parque: 30, fabrica: 35, comisaria: 35 },
+    position: { x: 0.62, y: 0.12 },
+    connections: ['estadio', 'expo', 'mercado_teran'],
+    travelCost: { estadio: 30, expo: 25, mercado_teran: 35 },
+    danger: 3, noise: 1,
+    loot: { abundance: 5, quality: 'medium', depleted: 0 },
+    fog: 'unknown',
+    description:
+      'La Universidad Autónoma de Aguascalientes. Los laboratorios tienen suministros médicos y químicos. Relativamente seguro — los zombis no parecen frecuentar las bibliotecas.',
+    lore: ['Un pizarrón dice: "Clase suspendida indefinidamente. Cuídense."'],
+    canStart: true,
+    startDescription:
+      'Despiertas en el campus universitario. Hay recursos en los laboratorios y pocas amenazas por ahora.',
+  },
+  {
+    id: 'expo',
+    name: 'Expo Aguascalientes',
+    type: 'commercial',
+    position: { x: 0.85, y: 0.22 },
+    connections: ['uaa', 'hospital_imss', 'las_fuentes'],
+    travelCost: { uaa: 25, hospital_imss: 30, las_fuentes: 35 },
+    danger: 5, noise: 3,
+    loot: { abundance: 6, quality: 'medium', depleted: 0 },
+    fog: 'unknown',
+    description:
+      'El centro de exposiciones, fue uno de los últimos lugares donde la gente se concentró cuando empezó el brote. Eso explica la cantidad de infectados.',
+    lore: [],
+    canStart: false,
+  },
+
+  // ─── CENTRO ────────────────────────────────────────────────────────
+  {
+    id: 'insurgentes',
+    name: 'Col. Insurgentes',
+    type: 'residential',
+    position: { x: 0.10, y: 0.45 },
+    connections: ['zona_industrial', 'estadio', 'centro', 'parque_alcalde'],
+    travelCost: { zona_industrial: 25, estadio: 30, centro: 25, parque_alcalde: 25 },
     danger: 3, noise: 2,
     loot: { abundance: 5, quality: 'low', depleted: 0 },
-    fog: 'scouted',
+    fog: 'unknown',
     description:
-      'Bloques de viviendas del norte. Hay señales de que hubo supervivientes aquí hace poco.',
+      'Colonia residencial al poniente. Casas con despensas. Hay vecinos que no murieron — solo cambiaron.',
     lore: [],
+    canStart: true,
+    startDescription:
+      'Despiertas en Insurgentes. Zona residencial tranquila con acceso a recursos domésticos básicos.',
   },
   {
-    id: 'supermercado',
-    name: 'Supermercado',
+    id: 'centro',
+    name: 'Centro Histórico',
     type: 'commercial',
-    position: { x: 0.45, y: 0.86 },
-    connections: ['refugio', 'res_sur'],
-    travelCost: { refugio: 20, res_sur: 30 },
+    position: { x: 0.38, y: 0.45 },
+    connections: ['insurgentes', 'mercado_teran', 'san_marcos', 'parque_alcalde'],
+    travelCost: { insurgentes: 25, mercado_teran: 20, san_marcos: 25, parque_alcalde: 25 },
+    danger: 6, noise: 4,
+    loot: { abundance: 7, quality: 'medium', depleted: 20 },
+    fog: 'explored',
+    description:
+      'La Plaza de la Patria, el corazón de Aguascalientes. Fue el punto de evacuación inicial. Hay recursos pero también una alta concentración de infectados en la zona peatonal.',
+    lore: [
+      'En la Catedral alguien puso un letrero: "DIOS NO ESTÁ AQUÍ. PERO TAMPOCO ELLOS."',
+      'Los túneles hidráulicos debajo del centro siguen siendo una ruta posible.',
+    ],
+    canStart: true,
+    startDescription:
+      'Despiertas en el corazón de la ciudad. Alto riesgo, pero acceso a casi todo si sobrevives el primer día.',
+  },
+  {
+    id: 'mercado_teran',
+    name: 'Mercado Terán',
+    type: 'commercial',
+    position: { x: 0.60, y: 0.43 },
+    connections: ['centro', 'uaa', 'hospital_imss'],
+    travelCost: { centro: 20, uaa: 35, hospital_imss: 25 },
     danger: 5, noise: 3,
-    loot: { abundance: 9, quality: 'medium', depleted: 0 },
+    loot: { abundance: 9, quality: 'medium', depleted: 10 },
     fog: 'scouted',
     description:
-      'El Supermercado Éxito. Probablemente saqueado, pero puede quedar algo útil entre los estantes caídos.',
+      'El mercado más grande de la ciudad. Puestos de comida, ferreterías, farmacias. Si hay comida en algún lugar de la ciudad, es aquí.',
     lore: [],
+    canStart: false,
   },
   {
-    id: 'parque',
-    name: 'Parque Municipal',
+    id: 'hospital_imss',
+    name: 'Hospital IMSS',
+    type: 'medical',
+    position: { x: 0.85, y: 0.45 },
+    connections: ['mercado_teran', 'expo', 'las_fuentes'],
+    travelCost: { mercado_teran: 25, expo: 30, las_fuentes: 25 },
+    danger: 7, noise: 3,
+    loot: { abundance: 9, quality: 'high', depleted: 0 },
+    fog: 'scouted',
+    description:
+      'El Hospital General de Zona No. 1 del IMSS. Medicamentos, equipo quirúrgico, antibióticos. El peligro es proporcional a lo que hay ahí.',
+    lore: ['Los últimos registros de admisiones tienen fecha del Día 3 del brote.'],
+    canStart: false,
+  },
+
+  // ─── SUR ───────────────────────────────────────────────────────────
+  {
+    id: 'parque_alcalde',
+    name: 'Parque Alcalde',
     type: 'wild',
-    position: { x: 0.15, y: 0.40 },
-    connections: ['gasolinera', 'res_norte', 'bosque'],
-    travelCost: { gasolinera: 30, res_norte: 30, bosque: 45 },
-    danger: 3, noise: 1,
+    position: { x: 0.18, y: 0.72 },
+    connections: ['insurgentes', 'centro', 'san_marcos'],
+    travelCost: { insurgentes: 25, centro: 25, san_marcos: 30 },
+    danger: 2, noise: 1,
     loot: { abundance: 3, quality: 'low', depleted: 0 },
-    fog: 'unknown',
+    fog: 'scouted',
     description:
-      'El parque central, ahora selvático. Menos zombis, pero la vegetación corta la visibilidad.',
+      'El Parque Alejandro Gutiérrez. Árboles, silencio, espacio abierto. Pocos zombis aquí — prefieren los espacios cerrados con más "comida".',
     lore: [],
+    canStart: true,
+    startDescription:
+      'Despiertas en el parque. Zona de bajo peligro, ideal para comenzar. Los recursos son escasos pero el tiempo para planear sobra.',
   },
   {
-    id: 'comisaria',
-    name: 'Comisaría',
-    type: 'military',
-    position: { x: 0.78, y: 0.40 },
-    connections: ['res_norte', 'hospital', 'cuartel'],
-    travelCost: { res_norte: 35, hospital: 35, cuartel: 40 },
-    danger: 6, noise: 2,
-    loot: { abundance: 7, quality: 'high', depleted: 0 },
-    fog: 'unknown',
-    description:
-      'La comisaría del distrito. Posible armería intacta. Alta concentración de infectados en el bloque.',
-    lore: [],
-  },
-  {
-    id: 'res_sur',
-    name: 'Residencial Sur',
+    id: 'san_marcos',
+    name: 'Barrio San Marcos',
     type: 'residential',
-    position: { x: 0.78, y: 0.86 },
-    connections: ['hospital', 'supermercado'],
-    travelCost: { hospital: 25, supermercado: 30 },
+    position: { x: 0.45, y: 0.75 },
+    connections: ['centro', 'parque_alcalde', 'las_fuentes'],
+    travelCost: { centro: 25, parque_alcalde: 30, las_fuentes: 25 },
+    danger: 4, noise: 2,
+    loot: { abundance: 5, quality: 'low', depleted: 0 },
+    fog: 'scouted',
+    description:
+      'El histórico Barrio de San Marcos, famoso por su Feria. Las casas coloniales son fáciles de barricar. El jardín es relativamente abierto.',
+    lore: ['El quiosco del jardín tiene escrita una lista de supervivientes con fechas. La última entrada es de hace 4 días.'],
+    canStart: true,
+    startDescription:
+      'Despiertas en San Marcos. Barrio histórico con buena visibilidad y acceso al centro. Peligro moderado.',
+  },
+  {
+    id: 'las_fuentes',
+    name: 'Col. Las Fuentes',
+    type: 'residential',
+    position: { x: 0.68, y: 0.72 },
+    connections: ['expo', 'hospital_imss', 'san_marcos', 'aeropuerto'],
+    travelCost: { expo: 35, hospital_imss: 25, san_marcos: 25, aeropuerto: 30 },
     danger: 4, noise: 2,
     loot: { abundance: 5, quality: 'low', depleted: 0 },
     fog: 'unknown',
-    description: 'Barrios residenciales al sur. Silenciosos... demasiado silenciosos.',
-    lore: [],
-  },
-  {
-    id: 'fabrica',
-    name: 'Fábrica',
-    type: 'industrial',
-    position: { x: 0.45, y: 0.14 },
-    connections: ['res_norte', 'cuartel', 'bosque'],
-    travelCost: { res_norte: 35, cuartel: 30, bosque: 45 },
-    danger: 7, noise: 4,
-    loot: { abundance: 6, quality: 'medium', depleted: 0 },
-    fog: 'unknown',
     description:
-      'Una fábrica abandonada desde antes del brote. Los trabajadores que quedaron no tardaron en convertirse.',
+      'Colonia residencial al oriente. Casas de clase media, jardines. Hay algo en los fraccionamientos cerrados — las barricadas que pusieron los vecinos mantienen tanto a los zombis adentro como afuera.',
     lore: [],
+    canStart: false,
   },
   {
-    id: 'bosque',
-    name: 'Bosque Norte',
-    type: 'wild',
-    position: { x: 0.15, y: 0.14 },
-    connections: ['parque', 'fabrica'],
-    travelCost: { parque: 45, fabrica: 45 },
-    danger: 3, noise: 1,
-    loot: { abundance: 2, quality: 'low', depleted: 0 },
-    fog: 'unknown',
-    description:
-      'El bosque al norte de la ciudad. Alejado del ruido. Alejado también de los recursos.',
-    lore: [],
-  },
-  {
-    id: 'cuartel',
-    name: 'Cuartel',
+    id: 'aeropuerto',
+    name: 'Aeropuerto Internacional',
     type: 'military',
-    position: { x: 0.78, y: 0.14 },
-    connections: ['fabrica', 'comisaria'],
-    travelCost: { fabrica: 30, comisaria: 40 },
+    position: { x: 0.82, y: 0.86 },
+    connections: ['las_fuentes'],
+    travelCost: { las_fuentes: 30 },
     danger: 8, noise: 3,
-    loot: { abundance: 9, quality: 'rare', depleted: 0 },
+    loot: { abundance: 8, quality: 'rare', depleted: 0 },
     fog: 'unknown',
     description:
-      'El cuartel militar al norte. Altísimo peligro, pero hay armamento pesado y raciones de campaña.',
-    lore: [],
+      'El Aeropuerto Internacional Licenciado Jesús Terán Peredo. Fue el último intento de evacuación militar. Hay armamento, vehículos, y lo que quedó cuando la evacuación falló.',
+    lore: ['Un avión sigue en la pista. Sus motores se encienden solos cada noche, por alguna razón.'],
+    canStart: false,
   },
 ];

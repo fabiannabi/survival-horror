@@ -5,11 +5,11 @@ export class TimeSystem {
   static readonly MINUTES_PER_DAY = 24 * 60;
 
   static fromMinutes(totalMinutes: number): GameTime {
-    const day = Math.floor(totalMinutes / this.MINUTES_PER_DAY) + 1;
-    const minutesInDay = totalMinutes % this.MINUTES_PER_DAY;
-    const hour = Math.floor(minutesInDay / this.MINUTES_PER_HOUR);
-    const minute = minutesInDay % this.MINUTES_PER_HOUR;
-    return { totalMinutes, day, hour, minute, phase: this.getPhase(hour) };
+    const day = Math.floor(totalMinutes / TimeSystem.MINUTES_PER_DAY) + 1;
+    const minutesInDay = totalMinutes % TimeSystem.MINUTES_PER_DAY;
+    const hour = Math.floor(minutesInDay / TimeSystem.MINUTES_PER_HOUR);
+    const minute = minutesInDay % TimeSystem.MINUTES_PER_HOUR;
+    return { totalMinutes, day, hour, minute, phase: TimeSystem.getPhase(hour) };
   }
 
   static getPhase(hour: number): DayPhase {
