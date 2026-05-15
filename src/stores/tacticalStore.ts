@@ -1,6 +1,7 @@
 import { writable } from 'svelte/store';
 import { Path as RotPath, RNG as RotRNG } from 'rot-js';
 import { ZoneMap } from '../engine/world/ZoneMap';
+import { generateZoneMap } from '../engine/world/ZoneMapGen';
 import { TacticalFOV } from '../engine/world/TacticalFOV';
 import { LootTable } from '../engine/world/LootTable';
 import { ZombieAI } from '../engine/systems/ZombieAI';
@@ -10,9 +11,13 @@ import type { ZoneType } from '../engine/world/Zone';
 import type { Item } from '../engine/entities/Item';
 import type { ZombieState } from '../engine/entities/Zombie';
 
+export const MAX_AP = 4;
+
 export interface TacticalState extends ZoneMapState {
   containerLoot: Record<string, Item[]>;
   zombies: ZombieState[];
+  ap: number;
+  maxAp: number;
 }
 
 export type ActionEvent =
@@ -59,19 +64,18 @@ function createTacticalStore() {
     subscribe,
 
     enter(zoneId: string, type: ZoneType, seed: number, danger = 5) {
-      let s = ZoneMap.generate(zoneId, type, seed);
+      const gen = generateZoneMap(zoneId, type, seed);
+      let s: ZoneMapState = { zoneId: gen.zoneId, width: gen.width, height: gen.height, tiles: gen.tiles, playerX: gen.playerX, playerY: gen.playerY };
       s = TacticalFOV.compute(s, s.playerX, s.playerY);
 
-      // Generate container loot
+      // Generate container loot from positions found during map gen
       const lootSeed = (seed * 999983 + hashId(zoneId) + 17) >>> 0;
       const savedRng = RotRNG.getState();
       RotRNG.setSeed(lootSeed);
 
       const containerLoot: Record<string, Item[]> = {};
-      for (let y = 0; y < s.height; y++)
-        for (let x = 0; x < s.width; x++)
-          if (s.tiles[y][x].type === 'container')
-            containerLoot[`${x},${y}`] = LootTable.generate(type, zoneId);
+      for (const [cx, cy] of gen.containerPositions)
+        containerLoot[`${cx},${cy}`] = LootTable.generate(type, zoneId);
 
       // Spawn zombies
       const zombieSeed = (seed * 888883 + hashId(zoneId) + 42) >>> 0;
@@ -98,14 +102,14 @@ function createTacticalStore() {
       }
 
       RotRNG.setState(savedRng);
-      push({ ...s, containerLoot, zombies });
+      push({ ...s, containerLoot, zombies, ap: MAX_AP, maxAp: MAX_AP });
     },
 
     exit() { current = null; set(null); },
 
     moveTo(tx: number, ty: number): ActionResult {
       const state = current;
-      if (!state) return { steps: 0, events: [] };
+      if (!state || state.ap <= 0) return { steps: 0, events: [] };
 
       const pass = playerPassable(state);
       if (!pass(tx, ty)) return { steps: 0, events: [] };
@@ -116,15 +120,23 @@ function createTacticalStore() {
       astar.compute(state.playerX, state.playerY, (x, y) => path.push([x, y]));
       if (path.length < 2) return { steps: 0, events: [] };
 
-      const steps = path.length - 1;
-      const [nx, ny] = path[path.length - 1];
-      const fovState = TacticalFOV.compute({ ...state, playerX: nx, playerY: ny }, nx, ny);
-      const moved: TacticalState = { ...fovState, containerLoot: state.containerLoot, zombies: state.zombies };
+      // Walk as many steps as AP allows
+      const apCost = Math.min(path.length - 1, state.ap);
+      const dest = path[apCost];
+      const [nx, ny] = dest;
+      const newAp = state.ap - apCost;
 
-      const noiseRange = Math.min(Math.ceil(steps / 2), 6);
-      const { state: afterAI, events } = runAI(moved, noiseRange);
-      push(afterAI);
-      return { steps, events };
+      const fovState = TacticalFOV.compute({ ...state, playerX: nx, playerY: ny }, nx, ny);
+      const moved: TacticalState = { ...fovState, containerLoot: state.containerLoot, zombies: state.zombies, ap: newAp, maxAp: state.maxAp };
+
+      if (newAp <= 0) {
+        const noiseRange = Math.min(Math.ceil(apCost / 2), 6);
+        const { state: afterAI, events } = runAI(moved, noiseRange);
+        push({ ...afterAI, ap: MAX_AP });
+        return { steps: apCost, events };
+      }
+      push(moved);
+      return { steps: apCost, events: [] };
     },
 
     moveAdjacentTo(cx: number, cy: number): ActionResult {
@@ -148,7 +160,7 @@ function createTacticalStore() {
 
     attack(zx: number, zy: number): ActionResult {
       const state = current;
-      if (!state) return { steps: 0, events: [] };
+      if (!state || state.ap < 2) return { steps: 0, events: [] };
 
       const zIdx = state.zombies.findIndex(z => z.x === zx && z.y === zy);
       if (zIdx === -1) return { steps: 0, events: [] };
@@ -157,23 +169,25 @@ function createTacticalStore() {
       const newHealth = state.zombies[zIdx].health - damage;
       const killed = newHealth <= 0;
 
-      let newZombies = state.zombies.map((z, i) =>
+      const newZombies = state.zombies.map((z, i) =>
         i === zIdx ? { ...z, health: newHealth } : z,
       ).filter(z => z.health > 0);
 
       const events: ActionEvent[] = [{ type: 'player_hit_zombie', damage, killed }];
+      const newAp = state.ap - 2;
 
-      const noiseRange = 3;
-      const { state: afterAI, events: aiEvents } = runAI(
-        { ...state, zombies: newZombies }, noiseRange,
-      );
-      push(afterAI);
-      return { steps: 2, events: [...events, ...aiEvents] };
+      if (newAp <= 0) {
+        const { state: afterAI, events: aiEvents } = runAI({ ...state, zombies: newZombies }, 3);
+        push({ ...afterAI, ap: MAX_AP });
+        return { steps: 1, events: [...events, ...aiEvents] };
+      }
+      push({ ...state, zombies: newZombies, ap: newAp });
+      return { steps: 1, events };
     },
 
     loot(cx: number, cy: number): LootResult {
       const state = current;
-      if (!state) return { items: null, steps: 0, events: [] };
+      if (!state || state.ap < 2) return { items: null, steps: 0, events: [] };
 
       const key = `${cx},${cy}`;
       const items = state.containerLoot[key] ?? null;
@@ -185,13 +199,25 @@ function createTacticalStore() {
 
       const newContainerLoot = { ...state.containerLoot };
       delete newContainerLoot[key];
+      const newAp = state.ap - 2;
 
-      const { state: afterAI, events } = runAI(
-        { ...state, tiles: newTiles, containerLoot: newContainerLoot },
-        1,
-      );
-      push(afterAI);
-      return { items, steps: 2, events };
+      if (newAp <= 0) {
+        const { state: afterAI, events } = runAI(
+          { ...state, tiles: newTiles, containerLoot: newContainerLoot }, 1,
+        );
+        push({ ...afterAI, ap: MAX_AP });
+        return { items, steps: 1, events };
+      }
+      push({ ...state, tiles: newTiles, containerLoot: newContainerLoot, ap: newAp });
+      return { items, steps: 1, events: [] };
+    },
+
+    endTurn(): ActionResult {
+      const state = current;
+      if (!state) return { steps: 0, events: [] };
+      const { state: afterAI, events } = runAI(state, 0);
+      push({ ...afterAI, ap: MAX_AP });
+      return { steps: 0, events };
     },
   };
 }

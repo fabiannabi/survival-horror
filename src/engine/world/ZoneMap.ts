@@ -1,7 +1,9 @@
 import { Map as RotMap, RNG as RotRNG } from 'rot-js';
 import type { ZoneType } from './Zone';
 
-export type TileType = 'floor' | 'wall' | 'container' | 'container_empty' | 'exit';
+export type TileType =
+  | 'floor' | 'wall' | 'container' | 'container_empty' | 'exit'
+  | 'ground' | 'wall_ext' | 'door' | 'window' | 'rubble';
 export type CellVis = 'hidden' | 'seen' | 'visible';
 
 export interface Tile {
@@ -26,8 +28,8 @@ function hashId(id: string): number {
   return h;
 }
 
-const mkFloor = (): Tile => ({ type: 'floor', walkable: true, transparent: true, vis: 'hidden' });
-const mkWall = (): Tile => ({ type: 'wall', walkable: false, transparent: false, vis: 'hidden' });
+const mkFloor = (): Tile => ({ type: 'floor', walkable: true,  transparent: true,  vis: 'hidden' });
+const mkWall  = (): Tile => ({ type: 'wall',  walkable: false, transparent: false, vis: 'hidden' });
 
 export class ZoneMap {
   static readonly W = 44;

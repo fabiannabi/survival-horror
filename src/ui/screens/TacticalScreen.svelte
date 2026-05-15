@@ -14,6 +14,7 @@
   import LootModal from '../widgets/LootModal.svelte';
   import InventoryPanel from '../widgets/InventoryPanel.svelte';
   import type { TacticalState, ActionResult } from '../../stores/tacticalStore';
+  import { MAX_AP } from '../../stores/tacticalStore';
   import type { Item } from '../../engine/entities/Item';
 
   let canvasEl: HTMLDivElement;
@@ -109,6 +110,9 @@
     canvasEl.appendChild(app.canvas as HTMLCanvasElement);
     view = new TacticalView(app);
 
+    // Load tile sprites before first render
+    await view.preload();
+
     unsubs.push(
       tacticalStore.subscribe((state) => {
         lastState = state as TacticalState | null;
@@ -133,6 +137,12 @@
   $: zoneName = $worldStore.zones[$worldStore.currentZoneId]?.name ?? '';
   $: invCount = $inventoryStore.length;
   $: zombieCount = lastState?.zombies.length ?? 0;
+  $: currentAp = lastState?.ap ?? MAX_AP;
+  $: maxAp = lastState?.maxAp ?? MAX_AP;
+
+  function handleEndTurn() {
+    handleResult(tacticalStore.endTurn());
+  }
 </script>
 
 <div class="tactical">
@@ -148,6 +158,21 @@
         <span class="tactical__threat-count">{zombieCount}</span>
       </div>
     {/if}
+
+    <div class="tactical__ap">
+      <span class="tactical__ap-label">PA</span>
+      <div class="tactical__ap-pips">
+        {#each { length: maxAp } as _, i}
+          <span class="tactical__ap-pip" class:tactical__ap-pip--used={i >= currentAp}></span>
+        {/each}
+      </div>
+    </div>
+
+    <button
+      class="tactical__endturn-btn"
+      onclick={handleEndTurn}
+    >FIN TURNO</button>
+
     <button
       class="tactical__inv-btn"
       class:tactical__inv-btn--has={invCount > 0}
@@ -178,9 +203,8 @@
   </div>
 
   <div class="tactical__hint">
-    Mueve · <span class="tactical__hint--zombie">rojo</span> = zombi (toca para atacar) ·
-    <span class="tactical__hint--cont">marrón</span> = contenedor ·
-    <span class="tactical__hint--exit">verde</span> = salida
+    Mover=1PA · Atacar=2PA · Saquear=2PA · <span class="tactical__hint--zombie">rojo</span>=zombi ·
+    <span class="tactical__hint--cont">marrón</span>=contenedor · <span class="tactical__hint--exit">verde</span>=salida
   </div>
 </div>
 
@@ -244,6 +268,57 @@
     color: var(--color-blood);
     font-weight: 700;
   }
+
+  .tactical__ap {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 0.75rem;
+    border-left: 1px solid var(--color-border);
+  }
+
+  .tactical__ap-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    opacity: 0.45;
+    text-transform: uppercase;
+  }
+
+  .tactical__ap-pips {
+    display: flex;
+    gap: 3px;
+    margin-top: 3px;
+  }
+
+  .tactical__ap-pip {
+    width: 10px;
+    height: 10px;
+    background: var(--color-hope);
+    display: inline-block;
+  }
+
+  .tactical__ap-pip--used {
+    background: var(--color-border);
+  }
+
+  .tactical__endturn-btn {
+    padding: 0 0.85rem;
+    min-height: 48px;
+    background: transparent;
+    border: none;
+    border-left: 1px solid var(--color-border);
+    color: var(--color-hope);
+    font-family: var(--font-ui);
+    font-size: 0.8rem;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    opacity: 0.75;
+    touch-action: manipulation;
+    transition: opacity 0.15s, background 0.15s;
+    white-space: nowrap;
+  }
+
+  .tactical__endturn-btn:hover { opacity: 1; background: var(--color-surface); }
 
   .tactical__inv-btn {
     margin-left: auto;
