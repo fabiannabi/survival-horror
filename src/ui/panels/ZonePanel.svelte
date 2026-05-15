@@ -77,14 +77,21 @@
     </div>
 
     <div class="zone-panel__actions">
-      {#if canTravel}
+      {#if isCurrentZone}
+        <button
+          class="zone-panel__btn zone-panel__btn--enter"
+          onclick={() => gameStore.enterTactical()}
+        >
+          Entrar a zona
+        </button>
+      {:else if canTravel}
         <button
           class="zone-panel__btn zone-panel__btn--travel"
           onclick={() => gameStore.travel(selectedZone!.id)}
         >
           Viajar ({travelCost} min)
         </button>
-      {:else if !isCurrentZone}
+      {:else}
         <p class="zone-panel__no-access">Sin ruta directa desde aquí</p>
       {/if}
     </div>
@@ -222,6 +229,16 @@
 
   .zone-panel__btn--travel:hover {
     background: var(--color-hope);
+    color: var(--color-bg);
+  }
+
+  .zone-panel__btn--enter {
+    border: 1px solid #5fc88a;
+    color: #5fc88a;
+  }
+
+  .zone-panel__btn--enter:hover {
+    background: #5fc88a;
     color: var(--color-bg);
   }
 

@@ -10,6 +10,7 @@ import { logStore } from './logStore';
 import { timeStore } from './timeStore';
 import { worldStore } from './worldStore';
 import { uiStore } from './uiStore';
+import { tacticalStore } from './tacticalStore';
 import type { LogEntry, GameMeta } from '../engine/types';
 
 const INITIAL_TIME = 8 * 60; // Día 1, 08:00
@@ -21,13 +22,14 @@ function createGameStore() {
   let rng: RNG | null = null;
   let turnManager: TurnManager | null = null;
   let logger: Logger | null = null;
+  let gameSeed = 0;
 
   return {
     subscribe,
 
     newGame(seed?: number, startZoneId = 'centro') {
       bus = new EventBus();
-      const gameSeed = seed ?? Date.now();
+      gameSeed = seed ?? Date.now();
       rng = new RNG(gameSeed);
       turnManager = new TurnManager(bus, INITIAL_TIME);
       logger = new Logger(bus);
@@ -104,6 +106,19 @@ function createGameStore() {
         const time = get(timeStore);
         logger.warning(`${toZone.name}: zona de alto peligro. Mantente alerta.`, time);
       }
+    },
+
+    enterTactical() {
+      const world = get(worldStore);
+      const zone = world.zones[world.currentZoneId];
+      if (!zone) return;
+      tacticalStore.enter(zone.id, zone.type, gameSeed);
+      uiStore.setPlayerMode('tactical');
+    },
+
+    exitTactical() {
+      tacticalStore.exit();
+      uiStore.setPlayerMode('strategic');
     },
 
     getRNG(): RNG | null { return rng; },

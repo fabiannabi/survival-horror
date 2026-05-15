@@ -1,14 +1,16 @@
 <script lang="ts">
   import { uiStore } from '../../stores/uiStore';
   import StrategicScreen from './StrategicScreen.svelte';
+  import TacticalScreen from './TacticalScreen.svelte';
 </script>
 
 {#if $uiStore.playerMode === 'strategic'}
   <StrategicScreen />
+{:else if $uiStore.playerMode === 'tactical'}
+  <TacticalScreen />
 {:else}
-  <!-- Fase 3: TacticalScreen -->
   <div class="placeholder">
-    <p>[ VISTA TÁCTICA — Fase 3 pendiente ]</p>
+    <p>[ VISTA BASE — Fase 9 ]</p>
   </div>
 {/if}
 
