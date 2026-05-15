@@ -16,8 +16,8 @@
 
   // Generate a map preview with a random seed on load
   const previewSeed = Math.floor(Math.random() * 2_147_483_647);
-  let allZones: ZoneStateDef[] = [];
-  let startableZones: ZoneStateDef[] = [];
+  let allZones = $state<ZoneStateDef[]>([]);
+  let startableZones = $state<ZoneStateDef[]>([]);
   let selectedId = $state<string>('');
   let selectedZone = $derived(startableZones.find(z => z.id === selectedId) ?? startableZones[0]);
 
