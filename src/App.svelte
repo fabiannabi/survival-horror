@@ -1,18 +1,17 @@
 <script lang="ts">
-  import '../src/styles/global.css';
   import MainMenu from './ui/screens/MainMenu.svelte';
-
-  let screen = $state<'menu' | 'game'>('menu');
+  import GameScreen from './ui/screens/GameScreen.svelte';
+  import { uiStore } from './stores/uiStore';
+  import { gameStore } from './stores/gameStore';
 
   function handleNewGame() {
-    screen = 'game';
+    gameStore.newGame();
+    uiStore.setScreen('game');
   }
 </script>
 
-{#if screen === 'menu'}
+{#if $uiStore.screen === 'menu'}
   <MainMenu onNewGame={handleNewGame} />
-{:else}
-  <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--color-hope);font-family:var(--font-ui);font-size:2rem;letter-spacing:0.2em;">
-    [JUEGO — Fase 1 pendiente]
-  </div>
+{:else if $uiStore.screen === 'game'}
+  <GameScreen />
 {/if}
