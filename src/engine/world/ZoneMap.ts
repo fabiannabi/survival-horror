@@ -1,7 +1,7 @@
 import { Map as RotMap, RNG as RotRNG } from 'rot-js';
 import type { ZoneType } from './Zone';
 
-export type TileType = 'floor' | 'wall' | 'container' | 'exit';
+export type TileType = 'floor' | 'wall' | 'container' | 'container_empty' | 'exit';
 export type CellVis = 'hidden' | 'seen' | 'visible';
 
 export interface Tile {
@@ -92,7 +92,7 @@ export class ZoneMap {
         if (RotRNG.getUniform() < 0.5) {
           const [cx, cy] = rooms[i].getCenter();
           if (tiles[cy][cx].walkable)
-            tiles[cy][cx] = { type: 'container', walkable: true, transparent: true, vis: 'hidden' };
+            tiles[cy][cx] = { type: 'container', walkable: false, transparent: true, vis: 'hidden' };
         }
       }
     }

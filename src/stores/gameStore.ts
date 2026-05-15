@@ -13,6 +13,7 @@ import { worldStore } from './worldStore';
 import { uiStore } from './uiStore';
 import { tacticalStore } from './tacticalStore';
 import { playerStore } from './playerStore';
+import { inventoryStore } from './inventoryStore';
 import type { LogEntry, GameMeta } from '../engine/types';
 
 const INITIAL_TIME = 8 * 60; // Día 1, 08:00
@@ -43,6 +44,7 @@ function createGameStore() {
       timeStore.reset();
       logStore.clear();
       playerStore.reset();
+      inventoryStore.reset();
       warningsFired = new Set();
 
       // Initialize world with zone data

@@ -10,6 +10,10 @@
   import ZonePanel from '../panels/ZonePanel.svelte';
   import LogPanel from '../panels/LogPanel.svelte';
   import PlayerHUD from '../widgets/PlayerHUD.svelte';
+  import InventoryPanel from '../widgets/InventoryPanel.svelte';
+  import { inventoryStore } from '../../stores/inventoryStore';
+
+  let showInventory = false;
 
   let mapEl: HTMLDivElement;
   let map: L.Map | null = null;
@@ -115,16 +119,27 @@
         <div class="strategic__threat-fill" style="width:{$worldStore.globalThreat}%"></div>
       </div>
     </div>
+    <button
+      class="strategic__inv-btn"
+      class:strategic__inv-btn--has={$inventoryStore.length > 0}
+      onclick={() => showInventory = !showInventory}
+    >
+      MOCHILA{#if $inventoryStore.length > 0} ({$inventoryStore.length}){/if}
+    </button>
   </header>
 
   <PlayerHUD />
 
-  <div class="strategic__body">
+  <div class="strategic__body" style="position:relative">
     <div class="strategic__map" bind:this={mapEl}></div>
     <aside class="strategic__sidebar">
       <ZonePanel />
       <LogPanel />
     </aside>
+
+    {#if showInventory}
+      <InventoryPanel onClose={() => showInventory = false} />
+    {/if}
   </div>
 </div>
 
@@ -145,6 +160,26 @@
     border-bottom: 1px solid var(--color-border);
     flex-shrink: 0;
   }
+
+  .strategic__inv-btn {
+    margin-left: auto;
+    padding: 0 0.9rem;
+    background: transparent;
+    border: none;
+    border-left: 1px solid var(--color-border);
+    color: var(--color-text);
+    font-family: var(--font-ui);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    opacity: 0.4;
+    touch-action: manipulation;
+    transition: opacity 0.15s, background 0.15s;
+    white-space: nowrap;
+  }
+
+  .strategic__inv-btn--has { opacity: 0.85; color: var(--color-hope); }
+  .strategic__inv-btn:hover { opacity: 1; background: var(--color-surface); }
 
   .strategic__city,
   .strategic__threat {

@@ -4,16 +4,18 @@ import type { ZoneMapState, Tile } from '../engine/world/ZoneMap';
 const T = 16;
 
 const C = {
-  floorVis:  0x1a2518,
-  floorSeen: 0x0d110b,
-  wallVis:   0x2e3c2c,
-  wallSeen:  0x141a13,
-  exitVis:   0x2a7040,
-  exitSeen:  0x1a4025,
-  contVis:   0x5a3a18,
-  contSeen:  0x2a1e0e,
-  player:    0x4a8fb5,
-  playerHi:  0x8ac8e0,
+  floorVis:     0x1a2518,
+  floorSeen:    0x0d110b,
+  wallVis:      0x2e3c2c,
+  wallSeen:     0x141a13,
+  exitVis:      0x2a7040,
+  exitSeen:     0x1a4025,
+  contVis:      0x5a3a18,
+  contSeen:     0x2a1e0e,
+  contEmptyVis: 0x211a12,
+  contEmptySeen:0x131008,
+  player:       0x4a8fb5,
+  playerHi:     0x8ac8e0,
 };
 
 export class TacticalView {
@@ -62,10 +64,11 @@ export class TacticalView {
     if (tile.vis === 'hidden') return null;
     const seen = tile.vis === 'seen';
     switch (tile.type) {
-      case 'wall':      return seen ? C.wallSeen  : C.wallVis;
-      case 'exit':      return seen ? C.exitSeen  : C.exitVis;
-      case 'container': return seen ? C.contSeen  : C.contVis;
-      default:          return seen ? C.floorSeen : C.floorVis;
+      case 'wall':            return seen ? C.wallSeen      : C.wallVis;
+      case 'exit':            return seen ? C.exitSeen      : C.exitVis;
+      case 'container':       return seen ? C.contSeen      : C.contVis;
+      case 'container_empty': return seen ? C.contEmptySeen : C.contEmptyVis;
+      default:                return seen ? C.floorSeen     : C.floorVis;
     }
   }
 
