@@ -19,11 +19,37 @@
   let map: L.Map | null = null;
   let markers: Record<string, L.Marker> = {};
   let connLines: L.Polyline[] = [];
+  let tileLayer: L.TileLayer | null = null;
   const unsubs: (() => void)[] = [];
 
-  const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-  const TILE_ATTR =
-    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+  type MapStyle = 'dark' | 'satellite';
+  let mapStyle: MapStyle = 'dark';
+
+  const TILES: Record<MapStyle, { url: string; attr: string; subdomains?: string }> = {
+    dark: {
+      url:  'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+      attr: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: 'abcd',
+    },
+    satellite: {
+      url:  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      attr: '&copy; <a href="https://www.esri.com/">Esri</a>, Maxar, Earthstar Geographics',
+    },
+  };
+
+  function setMapStyle(style: MapStyle) {
+    if (!map) return;
+    mapStyle = style;
+    if (tileLayer) { tileLayer.remove(); tileLayer = null; }
+    const cfg = TILES[style];
+    tileLayer = L.tileLayer(cfg.url, {
+      attribution: cfg.attr,
+      subdomains: cfg.subdomains ?? 'abc',
+      maxZoom: 19,
+    }).addTo(map);
+    // satellite tile needs darkening via CSS class on the map container
+    mapEl.classList.toggle('map--satellite', style === 'satellite');
+  }
 
   function markerHtml(name: string, fog: FogLevel, isCurrent: boolean, isSelected: boolean): string {
     const cls = ['zm', `zm--${fog}`, isCurrent && 'zm--current', isSelected && 'zm--selected']
@@ -90,11 +116,7 @@
       [21.870, -102.300],
       12,
     );
-    L.tileLayer(TILE_URL, {
-      attribution: TILE_ATTR,
-      subdomains: 'abcd',
-      maxZoom: 17,
-    }).addTo(map);
+    setMapStyle('dark');
     redraw();
     unsubs.push(worldStore.subscribe(redraw));
     unsubs.push(uiStore.subscribe(redraw));
@@ -118,6 +140,18 @@
       <div class="strategic__threat-bar">
         <div class="strategic__threat-fill" style="width:{$worldStore.globalThreat}%"></div>
       </div>
+    </div>
+    <div class="strategic__map-toggle">
+      <button
+        class="strategic__toggle-btn"
+        class:strategic__toggle-btn--active={mapStyle === 'dark'}
+        onclick={() => setMapStyle('dark')}
+      >OSM</button>
+      <button
+        class="strategic__toggle-btn"
+        class:strategic__toggle-btn--active={mapStyle === 'satellite'}
+        onclick={() => setMapStyle('satellite')}
+      >SAT</button>
     </div>
     <button
       class="strategic__inv-btn"
@@ -180,6 +214,40 @@
 
   .strategic__inv-btn--has { opacity: 0.85; color: var(--color-hope); }
   .strategic__inv-btn:hover { opacity: 1; background: var(--color-surface); }
+
+  .strategic__map-toggle {
+    display: flex;
+    align-items: center;
+    border-left: 1px solid var(--color-border);
+  }
+
+  .strategic__toggle-btn {
+    padding: 0 0.6rem;
+    height: 100%;
+    background: transparent;
+    border: none;
+    border-right: 1px solid var(--color-border);
+    color: var(--color-text);
+    font-family: var(--font-ui);
+    font-size: 0.58rem;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    opacity: 0.3;
+    touch-action: manipulation;
+    transition: opacity 0.15s, background 0.15s;
+  }
+
+  .strategic__toggle-btn--active {
+    opacity: 0.9;
+    color: var(--color-hope);
+  }
+
+  .strategic__toggle-btn:hover { opacity: 0.7; background: var(--color-surface); }
+
+  /* Satellite tiles — darkened to match horror theme */
+  :global(.map--satellite .leaflet-tile-pane) {
+    filter: grayscale(40%) brightness(45%) contrast(115%) sepia(15%);
+  }
 
   .strategic__city,
   .strategic__threat {
