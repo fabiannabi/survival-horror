@@ -3,7 +3,11 @@
   import { uiStore } from '../../stores/uiStore';
   import { gameStore } from '../../stores/gameStore';
   import { StrategicMap } from '../../engine/world/StrategicMap';
-  import { Travel } from '../../engine/world/Travel';
+  import { Travel, type TravelMode } from '../../engine/world/Travel';
+  import { ZONE_POIS, POI_META } from '../../engine/data/zonePois';
+  import TravelModeModal from '../modals/TravelModeModal.svelte';
+
+  let showTravelModal = false;
 
   const TYPE_LABEL: Record<string, string> = {
     residential: 'Residencial',
@@ -71,6 +75,17 @@
 
       {#if selectedZone.fog === 'explored' || selectedZone.fog === 'scouted'}
         <p class="zone-panel__desc">{selectedZone.description}</p>
+        {@const pois = ZONE_POIS[selectedZone.id] ?? []}
+        {#if pois.length > 0}
+          <div class="zone-panel__pois">
+            {#each pois as poi}
+              <div class="zone-panel__poi" style="border-left-color:{POI_META[poi.category].color}">
+                <span class="zone-panel__poi-badge" style="color:{POI_META[poi.category].color}">{POI_META[poi.category].badge}</span>
+                <span class="zone-panel__poi-label">{poi.label}</span>
+              </div>
+            {/each}
+          </div>
+        {/if}
       {:else}
         <p class="zone-panel__desc zone-panel__desc--unknown">Zona sin explorar.</p>
       {/if}
@@ -87,9 +102,9 @@
       {:else if canTravel}
         <button
           class="zone-panel__btn zone-panel__btn--travel"
-          onclick={() => gameStore.travel(selectedZone!.id)}
+          onclick={() => showTravelModal = true}
         >
-          Viajar ({travelCost} min)
+          Viajar (~{travelCost} min a pie)
         </button>
       {:else}
         <p class="zone-panel__no-access">Sin ruta directa desde aquí</p>
@@ -101,6 +116,18 @@
     </div>
   {/if}
 </div>
+
+{#if showTravelModal && selectedZone && canTravel}
+  <TravelModeModal
+    targetZone={selectedZone}
+    baseCost={travelCost}
+    onConfirm={(mode: TravelMode) => {
+      gameStore.travel(selectedZone!.id, mode);
+      showTravelModal = false;
+    }}
+    onClose={() => showTravelModal = false}
+  />
+{/if}
 
 <style>
   .zone-panel {
@@ -120,16 +147,16 @@
   .zone-panel__name {
     display: block;
     font-weight: 700;
-    font-size: 0.9rem;
+    font-size: 1.05rem;
     color: var(--color-hope);
     letter-spacing: 0.05em;
   }
 
   .zone-panel__type {
-    font-size: 0.58rem;
+    font-size: 0.78rem;
     letter-spacing: 0.15em;
     text-transform: uppercase;
-    opacity: 0.35;
+    opacity: 0.45;
   }
 
   .zone-panel__body {
@@ -141,9 +168,9 @@
   }
 
   .zone-panel__current {
-    font-size: 0.68rem;
+    font-size: 0.85rem;
     color: var(--color-hope);
-    opacity: 0.6;
+    opacity: 0.7;
     margin: 0;
   }
 
@@ -160,16 +187,16 @@
   }
 
   .zone-panel__stat-label {
-    width: 3rem;
-    font-size: 0.58rem;
+    width: 3.5rem;
+    font-size: 0.78rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    opacity: 0.4;
+    opacity: 0.5;
   }
 
   .zone-panel__bar {
     flex: 1;
-    height: 4px;
+    height: 6px;
     background: var(--color-border);
   }
 
@@ -182,28 +209,59 @@
   .zone-panel__bar-fill--loot { background: var(--color-hope); }
 
   .zone-panel__stat-num {
-    font-size: 0.58rem;
-    opacity: 0.4;
-    width: 2rem;
+    font-size: 0.78rem;
+    opacity: 0.5;
+    width: 2.2rem;
     text-align: right;
   }
 
   .zone-panel__fog {
-    font-size: 0.58rem;
+    font-size: 0.78rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    opacity: 0.35;
+    opacity: 0.45;
   }
 
   .zone-panel__desc {
     font-family: var(--font-narrative);
-    font-size: 0.73rem;
-    line-height: 1.45;
-    opacity: 0.65;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    opacity: 0.7;
     margin: 0;
   }
 
-  .zone-panel__desc--unknown { font-style: italic; opacity: 0.25; }
+  .zone-panel__desc--unknown { font-style: italic; opacity: 0.3; }
+
+  .zone-panel__pois {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    margin-top: 0.1rem;
+  }
+
+  .zone-panel__poi {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    padding-left: 0.4rem;
+    border-left: 2px solid;
+    border-left-color: var(--color-border);
+  }
+
+  .zone-panel__poi-badge {
+    font-family: var(--font-ui);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+  }
+
+  .zone-panel__poi-label {
+    font-family: var(--font-ui);
+    font-size: 0.78rem;
+    opacity: 0.65;
+    line-height: 1.3;
+  }
 
   .zone-panel__actions {
     padding: 0.5rem 0.75rem 0.6rem;
@@ -211,11 +269,11 @@
 
   .zone-panel__btn {
     width: 100%;
-    padding: 0.5rem 0.75rem;
-    min-height: 44px;
+    padding: 0.55rem 0.75rem;
+    min-height: 48px;
     background: transparent;
     font-family: var(--font-ui);
-    font-size: 0.78rem;
+    font-size: 0.92rem;
     letter-spacing: 0.08em;
     cursor: pointer;
     transition: background 0.15s, color 0.15s;
@@ -224,9 +282,9 @@
 
   @media (max-width: 640px) {
     .zone-panel__btn {
-      padding: 0.35rem 0.75rem;
-      min-height: 40px;
-      font-size: 0.72rem;
+      padding: 0.4rem 0.75rem;
+      min-height: 44px;
+      font-size: 0.85rem;
     }
 
     .zone-panel {
@@ -259,8 +317,8 @@
   }
 
   .zone-panel__no-access {
-    font-size: 0.62rem;
-    opacity: 0.25;
+    font-size: 0.82rem;
+    opacity: 0.35;
     text-align: center;
     margin: 0;
     letter-spacing: 0.06em;
@@ -275,8 +333,8 @@
   }
 
   .zone-panel__empty p {
-    font-size: 0.68rem;
-    opacity: 0.25;
+    font-size: 0.88rem;
+    opacity: 0.3;
     text-align: center;
     letter-spacing: 0.05em;
     margin: 0;

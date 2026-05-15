@@ -4,9 +4,10 @@ import { RNG } from '../engine/core/RNG';
 import { TurnManager } from '../engine/core/TurnManager';
 import { Logger } from '../engine/core/Logger';
 import { StrategicMap } from '../engine/world/StrategicMap';
-import { Travel } from '../engine/world/Travel';
+import { Travel, type TravelMode } from '../engine/world/Travel';
 import { NeedsSystem } from '../engine/systems/NeedsSystem';
-import { INITIAL_ZONES, type ZoneStateDef } from '../engine/data/zones';
+import { generateMap } from '../engine/world/ProceduralMapGen';
+import type { ZoneStateDef } from '../engine/data/zones';
 import { logStore } from './logStore';
 import { timeStore } from './timeStore';
 import { worldStore } from './worldStore';
@@ -31,7 +32,7 @@ function createGameStore() {
   return {
     subscribe,
 
-    newGame(seed?: number, startZoneId = 'centro') {
+    newGame(seed?: number, startZoneId?: string) {
       bus = new EventBus();
       gameSeed = seed ?? Date.now();
       rng = new RNG(gameSeed);
@@ -47,19 +48,22 @@ function createGameStore() {
       inventoryStore.reset();
       warningsFired = new Set();
 
-      // Initialize world with zone data
-      const startId = startZoneId ?? 'centro';
+      // Generate procedural map from seed
+      const generated = generateMap(gameSeed);
+      const startZone = startZoneId
+        ? (generated.find(z => z.id === startZoneId) ?? generated.find(z => z.canStart))
+        : generated.find(z => z.canStart);
+      const startId = startZone?.id ?? generated[0].id;
+
       const zones = Object.fromEntries(
-        INITIAL_ZONES.map((z) => {
-          // Reveal start zone + its neighbors
+        generated.map((z) => {
           if (z.id === startId) return [z.id, { ...z, fog: 'explored' as const }];
-          const startZone = INITIAL_ZONES.find((s) => s.id === startId);
           if (startZone?.connections.includes(z.id)) return [z.id, { ...z, fog: 'scouted' as const }];
           return [z.id, z];
         }),
       );
       worldStore.set({
-        cityName: 'Aguascalientes',
+        cityName: 'Ciudad Generada',
         currentZoneId: startId,
         zones,
         globalThreat: 10,
@@ -67,12 +71,11 @@ function createGameStore() {
       });
       uiStore.selectZone(startId);
 
-      const startZone = INITIAL_ZONES.find((z) => z.id === startId);
       logger.narrative(
         startZone?.startDescription ?? 'Despiertas en una ciudad muerta. El silencio es absoluto.',
         INITIAL_TIME,
       );
-      logger.info('Día 1. Aguascalientes ha caído. Explora el mapa.', INITIAL_TIME);
+      logger.info('Día 1. La ciudad ha caído. Explora el mapa.', INITIAL_TIME);
 
       turnManager.schedule('player', 0);
 
@@ -112,25 +115,41 @@ function createGameStore() {
       turnManager.schedule('player', 0);
     },
 
-    travel(targetId: string) {
+    travel(targetId: string, mode: TravelMode = 'foot') {
       if (!logger) return;
       const world = get(worldStore);
       if (!Travel.canTravel(world.zones, world.currentZoneId, targetId)) return;
 
-      const cost = Travel.cost(world.zones, world.currentZoneId, targetId);
+      const baseCost = Travel.cost(world.zones, world.currentZoneId, targetId);
+      const cost = Travel.travelTime(baseCost, mode);
       const fromZone = world.zones[world.currentZoneId];
       const toZone = world.zones[targetId];
-      const desc = Travel.describe(fromZone.name, toZone.name, cost);
+      const desc = Travel.describe(fromZone.name, toZone.name, cost, mode);
 
       this.playerAction(cost, desc);
+
+      // Extra fatigue from physical exertion (foot travel is tiring)
+      const extraFatigue = Travel.extraFatigue(baseCost, mode);
+      if (extraFatigue > 0) {
+        playerStore.update(p => ({
+          ...p,
+          fatigue: Math.min(100, p.fatigue + extraFatigue),
+        }));
+      }
 
       const newZones = StrategicMap.revealAfterTravel(world.zones, targetId);
       worldStore.moveToZone(targetId, newZones);
       uiStore.selectZone(targetId);
 
+      const time = get(timeStore);
       if (toZone.danger >= 7) {
-        const time = get(timeStore);
         logger.warning(`${toZone.name}: zona de alto peligro. Mantente alerta.`, time);
+      }
+
+      // High-noise arrival attracts zombies
+      const noise = Travel.noiseOnArrival(mode);
+      if (noise >= 3) {
+        logger.warning(`El ruido del viaje en ${Travel.modeConfig(mode).label.toLowerCase()} atrae a los muertos. Cuidado.`, time);
       }
     },
 

@@ -46,14 +46,14 @@
   }
 
   .time-indicator__day {
-    font-size: 0.6rem;
+    font-size: 0.78rem;
     letter-spacing: 0.15em;
     color: var(--color-text);
-    opacity: 0.5;
+    opacity: 0.6;
   }
 
   .time-indicator__clock {
-    font-size: 1.35rem;
+    font-size: 1.4rem;
     font-weight: 700;
     letter-spacing: 0.08em;
     color: var(--color-hope);
@@ -61,10 +61,10 @@
   }
 
   .time-indicator__phase {
-    font-size: 0.7rem;
+    font-size: 0.85rem;
     letter-spacing: 0.12em;
     color: var(--color-text);
-    opacity: 0.6;
+    opacity: 0.7;
     text-transform: uppercase;
     margin-left: auto;
   }

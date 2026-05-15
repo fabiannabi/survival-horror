@@ -212,14 +212,14 @@
   }
 
   .tactical__zone-label {
-    font-size: 0.55rem;
+    font-size: 0.72rem;
     letter-spacing: 0.15em;
-    opacity: 0.3;
+    opacity: 0.45;
     text-transform: uppercase;
   }
 
   .tactical__zone-name {
-    font-size: 0.82rem;
+    font-size: 0.95rem;
     color: var(--color-hope);
     letter-spacing: 0.05em;
   }
@@ -233,14 +233,14 @@
   }
 
   .tactical__threat-label {
-    font-size: 0.5rem;
+    font-size: 0.72rem;
     letter-spacing: 0.15em;
-    opacity: 0.3;
+    opacity: 0.45;
     text-transform: uppercase;
   }
 
   .tactical__threat-count {
-    font-size: 0.82rem;
+    font-size: 0.95rem;
     color: var(--color-blood);
     font-weight: 700;
   }
@@ -248,16 +248,16 @@
   .tactical__inv-btn {
     margin-left: auto;
     padding: 0 0.85rem;
-    min-height: 44px;
+    min-height: 48px;
     background: transparent;
     border: none;
     border-left: 1px solid var(--color-border);
     color: var(--color-text);
     font-family: var(--font-ui);
-    font-size: 0.65rem;
+    font-size: 0.85rem;
     letter-spacing: 0.1em;
     cursor: pointer;
-    opacity: 0.45;
+    opacity: 0.5;
     touch-action: manipulation;
     transition: opacity 0.15s, background 0.15s;
     white-space: nowrap;
@@ -269,16 +269,16 @@
 
   .tactical__exit-btn {
     padding: 0 1rem;
-    min-height: 44px;
+    min-height: 48px;
     background: transparent;
     border: none;
     border-left: 1px solid var(--color-border);
     color: var(--color-text);
     font-family: var(--font-ui);
-    font-size: 0.8rem;
+    font-size: 0.95rem;
     letter-spacing: 0.06em;
     cursor: pointer;
-    opacity: 0.6;
+    opacity: 0.65;
     touch-action: manipulation;
     transition: opacity 0.15s, background 0.15s;
   }
@@ -300,10 +300,10 @@
   .tactical__canvas :global(canvas) { display: block; }
 
   .tactical__hint {
-    padding: 0.3rem 0.75rem;
-    font-size: 0.6rem;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
     letter-spacing: 0.06em;
-    opacity: 0.25;
+    opacity: 0.35;
     text-align: center;
     background: var(--color-bg);
     border-top: 1px solid var(--color-border);
@@ -317,8 +317,8 @@
   @media (max-width: 640px) {
     .tactical__zone,
     .tactical__threat { display: none; }
-    .tactical__inv-btn { padding: 0 0.6rem; font-size: 0.6rem; }
-    .tactical__exit-btn { padding: 0 0.75rem; font-size: 0.72rem; }
-    .tactical__hint { font-size: 0.52rem; padding: 0.25rem 0.5rem; }
+    .tactical__inv-btn { padding: 0 0.6rem; font-size: 0.8rem; }
+    .tactical__exit-btn { padding: 0 0.75rem; font-size: 0.88rem; }
+    .tactical__hint { font-size: 0.72rem; padding: 0.3rem 0.5rem; }
   }
 </style>

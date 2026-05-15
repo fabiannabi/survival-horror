@@ -47,9 +47,9 @@
   .log__header {
     padding: 0.4rem 0.75rem;
     font-family: var(--font-ui);
-    font-size: 0.6rem;
+    font-size: 0.78rem;
     letter-spacing: 0.2em;
-    opacity: 0.35;
+    opacity: 0.45;
     border-bottom: 1px solid var(--color-border);
     text-transform: uppercase;
     flex-shrink: 0;
@@ -61,22 +61,22 @@
     padding: 0.5rem 0.75rem;
     display: flex;
     flex-direction: column;
-    gap: 0.6rem;
+    gap: 0.65rem;
     scrollbar-width: thin;
     scrollbar-color: #333 transparent;
   }
 
   .log__entry {
     font-family: var(--font-narrative);
-    font-size: 0.78rem;
-    line-height: 1.45;
+    font-size: 0.92rem;
+    line-height: 1.5;
   }
 
   .log__time {
     display: block;
     font-family: var(--font-ui);
-    font-size: 0.55rem;
-    opacity: 0.35;
+    font-size: 0.72rem;
+    opacity: 0.4;
     letter-spacing: 0.08em;
     margin-bottom: 0.15rem;
   }
@@ -87,7 +87,7 @@
 
   .log__empty {
     font-family: var(--font-narrative);
-    font-size: 0.75rem;
+    font-size: 0.9rem;
     opacity: 0.3;
     margin: 0;
   }

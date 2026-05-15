@@ -1,13 +1,11 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import L from 'leaflet';
-  import { INITIAL_ZONES, type ZoneStateDef } from '../../engine/data/zones';
+  import { Application } from 'pixi.js';
+  import { StrategicView } from '../../render/StrategicView';
+  import { generateMap } from '../../engine/world/ProceduralMapGen';
+  import type { ZoneStateDef } from '../../engine/data/zones';
   import { uiStore } from '../../stores/uiStore';
   import { gameStore } from '../../stores/gameStore';
-
-  const startableZones: ZoneStateDef[] = INITIAL_ZONES.filter((z) => z.canStart);
-  let selectedId = $state<string>(startableZones[0]?.id ?? '');
-  let selectedZone = $derived(startableZones.find((z) => z.id === selectedId) ?? startableZones[0]);
 
   const TYPE_LABEL: Record<string, string> = {
     residential: 'Residencial', commercial: 'Comercial', industrial: 'Industrial',
@@ -16,87 +14,69 @@
   const DANGER_LABEL = ['', 'Mínimo', 'Bajo', 'Bajo', 'Moderado', 'Moderado', 'Alto', 'Alto', 'Extremo', 'Extremo', 'Letal'];
   const DANGER_COLOR = ['', '#4a8a4a', '#5a8a4a', '#7a9a4a', '#4a8fb5', '#4a8fb5', '#c97a30', '#c97a30', '#aa4444', '#aa4444', '#7a1f1f'];
 
-  const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-  const TILE_ATTR =
-    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+  // Generate a map preview with a random seed on load
+  const previewSeed = Math.floor(Math.random() * 2_147_483_647);
+  let allZones: ZoneStateDef[] = [];
+  let startableZones: ZoneStateDef[] = [];
+  let selectedId = $state<string>('');
+  let selectedZone = $derived(startableZones.find(z => z.id === selectedId) ?? startableZones[0]);
 
-  let mapEl: HTMLDivElement;
-  let map: L.Map | null = null;
-  let markers: Record<string, L.Marker> = {};
+  let canvasEl: HTMLDivElement;
+  let app: Application | null = null;
+  let view: StrategicView | null = null;
 
-  function markerHtml(zone: ZoneStateDef, isSelected: boolean): string {
-    const cls = [
-      'zm',
-      'zm--explored',
-      zone.canStart && 'zm--startable',
-      isSelected && 'zm--selected',
-    ]
-      .filter(Boolean)
-      .join(' ');
-    return `<div class="${cls}">
-      <div class="zm__dot">${isSelected ? '<div class="zm__ring"></div>' : ''}</div>
-      <div class="zm__label">${zone.name}</div>
-    </div>`;
+  function redraw() {
+    if (!view || !allZones.length) return;
+    const zones = allZones.map(z => ({
+      ...z,
+      fog: 'explored' as const,
+    }));
+    view.render(zones, '', selectedId, id => {
+      const z = startableZones.find(s => s.id === id);
+      if (z) selectedId = id;
+    }, true);
   }
 
-  function drawMarkers() {
-    if (!map) return;
-    Object.values(markers).forEach((m) => map!.removeLayer(m));
-    markers = {};
+  onMount(async () => {
+    allZones = generateMap(previewSeed);
+    startableZones = allZones.filter(z => z.canStart);
+    selectedId = startableZones[0]?.id ?? '';
 
-    for (const zone of INITIAL_ZONES) {
-      const isSelected = zone.id === selectedId;
-      const icon = L.divIcon({
-        html: markerHtml(zone as ZoneStateDef, isSelected),
-        className: '',
-        iconSize: [0, 0],
-        iconAnchor: [5, 5],
-      });
-      const m = L.marker(zone.coords as L.LatLngTuple, { icon, interactive: zone.canStart }).addTo(map!);
-      if (zone.canStart) {
-        m.on('click', () => { selectedId = zone.id; });
-      }
-      markers[zone.id] = m;
-    }
-
-    // Pan to selected zone
-    const sel = INITIAL_ZONES.find((z) => z.id === selectedId);
-    if (sel) map.panTo(sel.coords as L.LatLngTuple, { animate: true });
-  }
-
-  onMount(() => {
-    map = L.map(mapEl, { zoomControl: true, attributionControl: true }).setView(
-      [21.870, -102.300],
-      12,
-    );
-    L.tileLayer(TILE_URL, {
-      attribution: TILE_ATTR,
-      subdomains: 'abcd',
-      maxZoom: 17,
-    }).addTo(map);
-    drawMarkers();
+    app = new Application();
+    await app.init({
+      resizeTo: canvasEl,
+      backgroundColor: 0x0d0d0c,
+      antialias: true,
+      resolution: window.devicePixelRatio || 1,
+      autoDensity: true,
+    });
+    canvasEl.appendChild(app.canvas);
+    view = new StrategicView(app);
+    redraw();
   });
 
-  onDestroy(() => { map?.remove(); });
+  onDestroy(() => {
+    view?.destroy();
+  });
 
   $effect(() => {
     selectedId;
-    drawMarkers();
+    redraw();
   });
 
   function startGame() {
-    gameStore.newGame(undefined, selectedId);
+    gameStore.newGame(previewSeed, selectedId);
     uiStore.setScreen('game');
   }
 </script>
 
 <div class="select-area">
-  <div class="select-area__map" bind:this={mapEl}></div>
+  <div class="select-area__map" bind:this={canvasEl}></div>
 
   <aside class="select-area__panel">
     <div class="select-area__header">
       <h2 class="select-area__title">¿Dónde despiertas?</h2>
-      <p class="select-area__sub">Elige tu zona de inicio en Aguascalientes</p>
+      <p class="select-area__sub">Elige tu zona de inicio</p>
     </div>
 
     <div class="select-area__list">
@@ -170,7 +150,7 @@
   }
 
   .select-area__title {
-    font-size: 1.1rem;
+    font-size: 1.3rem;
     font-weight: 700;
     color: var(--color-hope);
     letter-spacing: 0.08em;
@@ -178,9 +158,9 @@
   }
 
   .select-area__sub {
-    font-size: 0.65rem;
+    font-size: 0.82rem;
     letter-spacing: 0.1em;
-    opacity: 0.4;
+    opacity: 0.5;
     margin: 0;
     text-transform: uppercase;
   }
@@ -219,24 +199,24 @@
   }
 
   .zone-card__name {
-    font-size: 0.88rem;
+    font-size: 1.0rem;
     font-weight: 700;
     color: var(--color-hope);
     letter-spacing: 0.04em;
   }
 
   .zone-card__type {
-    font-size: 0.56rem;
+    font-size: 0.75rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    opacity: 0.35;
+    opacity: 0.45;
   }
 
   .zone-card__desc {
     font-family: var(--font-narrative);
-    font-size: 0.72rem;
-    line-height: 1.4;
-    opacity: 0.65;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    opacity: 0.7;
     margin: 0 0 0.4rem;
   }
 
@@ -246,8 +226,8 @@
     align-items: center;
   }
 
-  .zone-card__danger { font-size: 0.6rem; letter-spacing: 0.06em; }
-  .zone-card__loot { font-size: 0.58rem; letter-spacing: 0.06em; opacity: 0.4; text-transform: uppercase; }
+  .zone-card__danger { font-size: 0.8rem; letter-spacing: 0.06em; }
+  .zone-card__loot { font-size: 0.78rem; letter-spacing: 0.06em; opacity: 0.5; text-transform: uppercase; }
 
   .select-area__confirm {
     padding: 0.75rem 1rem;
@@ -261,14 +241,14 @@
   .select-area__selected-info { display: flex; flex-direction: column; }
 
   .select-area__selected-name {
-    font-size: 0.88rem;
+    font-size: 1.0rem;
     font-weight: 700;
     color: var(--color-hope);
   }
 
   .select-area__selected-meta {
-    font-size: 0.58rem;
-    opacity: 0.4;
+    font-size: 0.8rem;
+    opacity: 0.5;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     margin-top: 0.1rem;
@@ -276,12 +256,12 @@
 
   .select-area__start-btn {
     width: 100%;
-    padding: 0.65rem;
+    padding: 0.75rem;
     background: var(--color-hope);
     border: none;
     color: var(--color-bg);
     font-family: var(--font-ui);
-    font-size: 0.88rem;
+    font-size: 1.0rem;
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -292,15 +272,8 @@
   .select-area__start-btn:hover { opacity: 0.85; }
 
   @media (max-width: 640px) {
-    .select-area {
-      flex-direction: column;
-    }
-
-    .select-area__map {
-      flex: none;
-      height: 42svh;
-    }
-
+    .select-area { flex-direction: column; }
+    .select-area__map { flex: none; height: 42svh; }
     .select-area__panel {
       width: 100%;
       border-left: none;
@@ -308,7 +281,6 @@
       flex: 1;
       min-height: 0;
     }
-
     .select-area__list {
       flex-direction: row;
       flex-wrap: nowrap;
@@ -316,10 +288,6 @@
       overflow-y: hidden;
       padding: 0.5rem;
     }
-
-    .zone-card {
-      min-width: 200px;
-      flex-shrink: 0;
-    }
+    .zone-card { min-width: 200px; flex-shrink: 0; }
   }
 </style>

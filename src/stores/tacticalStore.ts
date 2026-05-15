@@ -71,7 +71,7 @@ function createTacticalStore() {
       for (let y = 0; y < s.height; y++)
         for (let x = 0; x < s.width; x++)
           if (s.tiles[y][x].type === 'container')
-            containerLoot[`${x},${y}`] = LootTable.generate(type);
+            containerLoot[`${x},${y}`] = LootTable.generate(type, zoneId);
 
       // Spawn zombies
       const zombieSeed = (seed * 888883 + hashId(zoneId) + 42) >>> 0;

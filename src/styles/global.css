@@ -9,6 +9,7 @@
 
 html, body {
   height: 100%;
+  font-size: 20px;
   background-color: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-ui);
@@ -46,8 +47,8 @@ html, body {
 }
 
 .zm__dot {
-  width: 10px;
-  height: 10px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
   border: 2px solid var(--color-hope);
   background: var(--color-bg);
@@ -58,7 +59,7 @@ html, body {
 
 .zm__label {
   font-family: var(--font-ui);
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.04em;
   color: var(--color-text);
@@ -70,11 +71,29 @@ html, body {
 
 .zm__you {
   font-family: var(--font-ui);
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--color-hope);
   margin-top: 2px;
   letter-spacing: 0.14em;
+}
+
+.zm__pois {
+  display: flex;
+  gap: 3px;
+  margin-top: 3px;
+}
+
+.zm__poi {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 1px 3px;
+  background: rgba(0,0,0,0.75);
+  border-radius: 2px;
+  text-shadow: none;
+  line-height: 1.2;
 }
 
 /* fog states */

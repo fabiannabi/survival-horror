@@ -14,6 +14,10 @@
     inventoryStore.remove(index);
     gameStore.playerAction(1);
   }
+
+  function hasEffects(item: import('../../engine/entities/Item').Item): boolean {
+    return Object.values(item.effects).some(v => v !== undefined && v !== 0);
+  }
 </script>
 
 <div class="inv-overlay" role="dialog" aria-modal="true">
@@ -34,7 +38,11 @@
               <span class="inv-item__name">{item.name}</span>
               <span class="inv-item__fx">{InventorySystem.effectLabel(item)}</span>
             </div>
-            <button class="inv-item__btn" onclick={() => useItem(i)}>Usar</button>
+            {#if hasEffects(item)}
+              <button class="inv-item__btn" onclick={() => useItem(i)}>Usar</button>
+            {:else}
+              <span class="inv-item__equip">EQUIPO</span>
+            {/if}
           </div>
         {/each}
       {/if}
@@ -147,6 +155,15 @@
   .inv-item__btn:hover {
     background: #5fc88a;
     color: var(--color-bg);
+  }
+
+  .inv-item__equip {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    opacity: 0.35;
+    border: 1px solid var(--color-border);
+    flex-shrink: 0;
   }
 
   .inv-empty {

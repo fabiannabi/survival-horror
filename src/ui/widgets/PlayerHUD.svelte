@@ -55,7 +55,7 @@
 
 <style>
   .phud {
-    padding: 0.25rem 0.75rem;
+    padding: 0.4rem 0.75rem;
     border-bottom: 1px solid var(--color-border);
     background: var(--color-surface);
     flex-shrink: 0;
@@ -63,36 +63,36 @@
 
   .phud__row {
     display: flex;
-    gap: 0.6rem;
+    gap: 0.65rem;
     align-items: center;
   }
 
   .phud__stat {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: 0.3rem;
     flex: 1;
     min-width: 0;
   }
 
   .phud__label {
     font-family: var(--font-ui);
-    font-size: 0.5rem;
+    font-size: 0.72rem;
     letter-spacing: 0.1em;
-    opacity: 0.4;
+    opacity: 0.55;
     text-transform: uppercase;
     flex-shrink: 0;
-    width: 1.8rem;
+    width: 2.2rem;
   }
 
   .phud__label--inf {
     color: var(--color-infection);
-    opacity: 0.8;
+    opacity: 0.9;
   }
 
   .phud__bar {
     flex: 1;
-    height: 3px;
+    height: 5px;
     background: var(--color-border);
     min-width: 0;
   }
@@ -108,9 +108,9 @@
 
   .phud__num {
     font-family: var(--font-ui);
-    font-size: 0.5rem;
-    opacity: 0.4;
-    width: 1.5rem;
+    font-size: 0.72rem;
+    opacity: 0.55;
+    width: 1.8rem;
     text-align: right;
     flex-shrink: 0;
   }
