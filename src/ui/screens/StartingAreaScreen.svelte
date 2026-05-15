@@ -27,14 +27,9 @@
 
   function redraw() {
     if (!view || !allZones.length) return;
-    const zones = allZones.map(z => ({
-      ...z,
-      fog: 'explored' as const,
-    }));
-    view.render(zones, '', selectedId, id => {
-      const z = startableZones.find(s => s.id === id);
-      if (z) selectedId = id;
-    }, true);
+    const zones = allZones.map(z => ({ ...z, fog: 'explored' as const }));
+    const startableIds = new Set(startableZones.map(z => z.id));
+    view.render(zones, '', selectedId, id => { selectedId = id; }, true, startableIds);
   }
 
   onMount(async () => {

@@ -38,12 +38,17 @@ export class StrategicView {
     this.app.stage.addChild(this.zoneLayer);
   }
 
+  /**
+   * @param interactiveIds  If provided, only these zone IDs respond to clicks.
+   *                        Pass undefined to make all visible zones interactive.
+   */
   render(
     zones: ZoneState[],
     currentZoneId: string,
     selectedZoneId: string | null,
     onClick: ClickHandler,
     selectionMode = false,
+    interactiveIds?: Set<string>,
   ): void {
     this.bgLayer.removeChildren();
     this.voronoiLayer.removeChildren();
@@ -58,16 +63,15 @@ export class StrategicView {
 
     this.drawBackground(width, height);
 
-    // Voronoi territory polygons — these ARE the primary click targets
     for (const zone of zones) {
       const visible = selectionMode || FogOfWar.isVisible(zone.fog);
       const fogAlpha = selectionMode ? 1 : FogOfWar.alpha(zone.fog);
       if (zone.polygon && zone.polygon.length >= 3) {
-        this.drawVoronoiCell(zone, tx, ty, visible ? fogAlpha : 0.04, visible ? onClick : undefined);
+        const isInteractive = visible && (!interactiveIds || interactiveIds.has(zone.id));
+        this.drawVoronoiCell(zone, tx, ty, visible ? fogAlpha : 0.04, isInteractive ? onClick : undefined);
       }
     }
 
-    // Roads between visible zones
     for (const zone of zones) {
       const visible = selectionMode || FogOfWar.isVisible(zone.fog);
       if (!visible) continue;
@@ -81,7 +85,6 @@ export class StrategicView {
       }
     }
 
-    // Unknown zone hints
     for (const zone of zones) {
       const visible = selectionMode || FogOfWar.isVisible(zone.fog);
       if (!visible && !selectionMode) {
@@ -89,13 +92,13 @@ export class StrategicView {
       }
     }
 
-    // Zone markers — decorative + secondary click target on the disc Graphics
     for (const zone of zones) {
       const visible = selectionMode || FogOfWar.isVisible(zone.fog);
       if (!visible) continue;
 
       const fogAlpha = selectionMode ? 1 : FogOfWar.alpha(zone.fog);
-      const node = this.buildMarker(zone, currentZoneId, selectedZoneId, fogAlpha, selectionMode, onClick);
+      const isInteractive = !interactiveIds || interactiveIds.has(zone.id);
+      const node = this.buildMarker(zone, currentZoneId, selectedZoneId, fogAlpha, selectionMode, isInteractive ? onClick : undefined);
       node.x = tx(zone.position.x);
       node.y = ty(zone.position.y);
       this.zoneLayer.addChild(node);
@@ -121,10 +124,7 @@ export class StrategicView {
     if (onClick) {
       g.eventMode = 'static';
       g.cursor = 'pointer';
-      g.on('pointerdown', () => {
-        console.log('[Pixi] voronoi pointerdown zone:', zone.id);
-        onClick(zone.id);
-      });
+      g.on('pointerdown', () => onClick(zone.id));
     } else {
       g.eventMode = 'none';
     }
@@ -132,7 +132,7 @@ export class StrategicView {
     this.voronoiLayer.addChild(g);
   }
 
-  // ─── Background: dark city grid ──────────────────────────────────────────
+  // ─── Background ──────────────────────────────────────────────────────────
   private drawBackground(w: number, h: number): void {
     const base = new Graphics();
     base.rect(0, 0, w, h);
@@ -153,13 +153,7 @@ export class StrategicView {
 
     const watermark = new Text({
       text: 'CIUDAD GENERADA',
-      style: {
-        fill: 0x1e1e1a,
-        fontSize: 28,
-        fontFamily: 'monospace, sans-serif',
-        letterSpacing: 6,
-        fontWeight: '700',
-      },
+      style: { fill: 0x1e1e1a, fontSize: 28, fontFamily: 'monospace, sans-serif', letterSpacing: 6, fontWeight: '700' },
     });
     watermark.anchor.set(0.5);
     watermark.x = w / 2;
@@ -215,7 +209,7 @@ export class StrategicView {
     selectedId: string | null,
     alpha: number,
     selectionMode: boolean,
-    onClick: ClickHandler,
+    onClick?: ClickHandler,
   ): Container {
     const c = new Container();
     const isCurrent  = zone.id === currentId;
@@ -238,7 +232,6 @@ export class StrategicView {
     ring.eventMode = 'none';
     c.addChild(ring);
 
-    // disc is the primary marker click target
     const disc = new Graphics();
     disc.circle(0, 0, r);
     disc.fill({ color, alpha });
@@ -247,12 +240,13 @@ export class StrategicView {
       width: isCurrent ? 2.5 : 1.5,
       alpha,
     });
-    disc.eventMode = 'static';
-    disc.cursor = 'pointer';
-    disc.on('pointerdown', () => {
-      console.log('[Pixi] disc pointerdown zone:', zone.id);
-      onClick(zone.id);
-    });
+    if (onClick) {
+      disc.eventMode = 'static';
+      disc.cursor = 'pointer';
+      disc.on('pointerdown', () => onClick(zone.id));
+    } else {
+      disc.eventMode = 'none';
+    }
     c.addChild(disc);
 
     if (isCurrent) {
