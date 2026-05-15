@@ -47,7 +47,10 @@ export class ZombieAI {
         !others.some(o => o.x === x && o.y === y);
 
       const step = ZombieAI.nextStep(z, passable, playerX, playerY);
-      if (step) { z.x = step[0]; z.y = step[1]; }
+      // Never occupy the player's tile — attack from adjacent instead
+      if (step && !(step[0] === playerX && step[1] === playerY)) {
+        z.x = step[0]; z.y = step[1];
+      }
 
       if (chebyshev(z.x, z.y, playerX, playerY) <= 1) {
         attacks.push(CombatSystem.zombieAttack());
