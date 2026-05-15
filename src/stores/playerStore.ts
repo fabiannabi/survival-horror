@@ -1,17 +1,19 @@
 import { writable } from 'svelte/store';
+import { INITIAL_PLAYER, type PlayerState } from '../engine/entities/Player';
 
-export interface PlayerStub {
-  name: string;
-  health: number;
-  maxHealth: number;
-  hunger: number;
-  fatigue: number;
+function createPlayerStore() {
+  const { subscribe, set, update } = writable<PlayerState>({ ...INITIAL_PLAYER });
+
+  return {
+    subscribe,
+    reset() {
+      set({ ...INITIAL_PLAYER });
+    },
+    apply(next: PlayerState) {
+      set(next);
+    },
+    update,
+  };
 }
 
-export const playerStore = writable<PlayerStub>({
-  name: 'Superviviente',
-  health: 100,
-  maxHealth: 100,
-  hunger: 80,
-  fatigue: 20,
-});
+export const playerStore = createPlayerStore();

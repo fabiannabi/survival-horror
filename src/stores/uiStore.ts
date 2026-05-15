@@ -8,6 +8,7 @@ interface UiState {
   playerMode: PlayerMode;
   selectedZoneId: string | null;
   logOpen: boolean;
+  gameOverReason: string | null;
 }
 
 function createUiStore() {
@@ -16,6 +17,7 @@ function createUiStore() {
     playerMode: 'strategic',
     selectedZoneId: null,
     logOpen: true,
+    gameOverReason: null,
   });
 
   return {
@@ -31,6 +33,9 @@ function createUiStore() {
     },
     toggleLog() {
       update((s) => ({ ...s, logOpen: !s.logOpen }));
+    },
+    triggerGameOver(reason: string) {
+      update((s) => ({ ...s, screen: 'gameOver', gameOverReason: reason }));
     },
   };
 }

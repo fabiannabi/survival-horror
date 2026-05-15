@@ -7,6 +7,7 @@
   import { gameStore } from '../../stores/gameStore';
   import { uiStore } from '../../stores/uiStore';
   import TimeIndicator from '../widgets/TimeIndicator.svelte';
+  import PlayerHUD from '../widgets/PlayerHUD.svelte';
   import type { ZoneMapState } from '../../engine/world/ZoneMap';
 
   let canvasEl: HTMLDivElement;
@@ -64,6 +65,8 @@
     </div>
     <button class="tactical__exit-btn" onclick={exitTactical}>← Salir al mapa</button>
   </header>
+
+  <PlayerHUD />
 
   <div class="tactical__canvas" bind:this={canvasEl}></div>
 

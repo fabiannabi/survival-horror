@@ -9,6 +9,7 @@
   import TimeIndicator from '../widgets/TimeIndicator.svelte';
   import ZonePanel from '../panels/ZonePanel.svelte';
   import LogPanel from '../panels/LogPanel.svelte';
+  import PlayerHUD from '../widgets/PlayerHUD.svelte';
 
   let mapEl: HTMLDivElement;
   let map: L.Map | null = null;
@@ -115,6 +116,8 @@
       </div>
     </div>
   </header>
+
+  <PlayerHUD />
 
   <div class="strategic__body">
     <div class="strategic__map" bind:this={mapEl}></div>

@@ -5,12 +5,14 @@ import { TurnManager } from '../engine/core/TurnManager';
 import { Logger } from '../engine/core/Logger';
 import { StrategicMap } from '../engine/world/StrategicMap';
 import { Travel } from '../engine/world/Travel';
+import { NeedsSystem } from '../engine/systems/NeedsSystem';
 import { INITIAL_ZONES, type ZoneStateDef } from '../engine/data/zones';
 import { logStore } from './logStore';
 import { timeStore } from './timeStore';
 import { worldStore } from './worldStore';
 import { uiStore } from './uiStore';
 import { tacticalStore } from './tacticalStore';
+import { playerStore } from './playerStore';
 import type { LogEntry, GameMeta } from '../engine/types';
 
 const INITIAL_TIME = 8 * 60; // Día 1, 08:00
@@ -23,6 +25,7 @@ function createGameStore() {
   let turnManager: TurnManager | null = null;
   let logger: Logger | null = null;
   let gameSeed = 0;
+  let warningsFired = new Set<string>();
 
   return {
     subscribe,
@@ -39,6 +42,8 @@ function createGameStore() {
 
       timeStore.reset();
       logStore.clear();
+      playerStore.reset();
+      warningsFired = new Set();
 
       // Initialize world with zone data
       const startId = startZoneId ?? 'centro';
@@ -82,6 +87,25 @@ function createGameStore() {
       if (!turnManager || !logger) return;
       const time = get(timeStore);
       if (description) logger.info(description, time);
+
+      const prevNeeds = get(playerStore);
+      const nextNeeds = NeedsSystem.advance(prevNeeds, minutes);
+      playerStore.apply(nextNeeds);
+
+      const newWarnings = NeedsSystem.warnings(prevNeeds, nextNeeds);
+      for (const w of newWarnings) {
+        if (!warningsFired.has(w)) {
+          warningsFired.add(w);
+          logger.warning(w, get(timeStore));
+        }
+      }
+
+      if (NeedsSystem.isGameOver(nextNeeds)) {
+        const cause = NeedsSystem.deathCause(nextNeeds);
+        uiStore.triggerGameOver(cause);
+        return;
+      }
+
       turnManager.advance(minutes);
       turnManager.schedule('player', 0);
     },
